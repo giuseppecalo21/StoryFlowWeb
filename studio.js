@@ -1187,7 +1187,7 @@
     showObResult('wait','Si è aperta la pagina delle storie di Meta: clicca sul nome della tua pagina.');
     const res=await nativeSetup('pickMetaTarget');
     setPickBusy(false);
-    if(res.ok){setMetaTarget(res.text);showObResult('ok',`Perfetto! Pubblicheremo su «${res.text}».`);}
+    if(res.ok){setMetaTarget(res.text);showObResult('ok',`Perfetto! Pubblicheremo su «${res.text}». Se vuoi puoi modificarlo nella casella e poi premere «Verifica».`);}
     else showSetupFailure(res);
   }
   async function obVerify(){

@@ -20,6 +20,7 @@ const PAGE = `<!doctype html><html lang="it"><body style="font-family:sans-serif
     <div id="acc" role="button" style="padding:8px;cursor:pointer"><span id="page">Zona Prova</span> e <span id="ig">zona_prova</span></div>
   </section>
   <div id="two" style="margin-top:20px;width:300px">Riga uno<br>Riga due</div>
+  <div style="margin-top:20px"><div id="solo">Pagina Singola</div><div>Altra riga</div></div>
   <button id="share" style="margin-top:20px">Condividi</button>
   <script>window.metaClicks=0;document.addEventListener('click',()=>{window.metaClicks++;});</script>
 </body></html>`;
@@ -31,25 +32,48 @@ page.on('pageerror', e => errors.push(e.message));
 await page.setContent(PAGE);
 await page.evaluate(SETUP);
 
-// Scelta con un solo testo: clic sul nome, conferma, risultato esatto.
+// Clic sul nome della Pagina dentro "Pagina e profilo": si propone tutta la scritta, poi il solo nome.
 let picked = page.evaluate(() => window.__sfMetaSetup.pick());
 await page.waitForSelector('[data-storyflow=picker] >> text=Clicca sul nome');
 await page.hover('#page');
 if (shots) await page.screenshot({ path: join(shots, 'meta-selettore.png') });
 await page.click('#page');
+await page.waitForSelector('[data-storyflow=picker] >> text=Quale testo usiamo');
+const choices = await page.locator('[data-storyflow=picker] button.choice').allTextContents();
+check('Scelta: proposte tutta la scritta e il solo nome, in quest’ordine', JSON.stringify(choices) === JSON.stringify(['Zona Prova e zona_prova', 'Zona Prova']), JSON.stringify(choices));
+check('Scelta: spiegato perché conviene tutta la scritta', (await page.locator('[data-storyflow=picker] .body').textContent()).includes('Facebook e Instagram insieme'));
+if (shots) await page.screenshot({ path: join(shots, 'meta-selettore-scelta.png') });
+await page.click('[data-storyflow=picker] button.choice >> nth=0');
 await page.waitForSelector('[data-storyflow=picker] >> text=Usa questo nome');
 if (shots) await page.screenshot({ path: join(shots, 'meta-selettore-conferma.png') });
 await page.click('[data-storyflow=picker] >> text=Usa questo nome');
 let res = await picked;
-check('Scelta: restituisce il testo cliccato, identico', res.ok === true && res.text === 'Zona Prova', JSON.stringify(res));
+check('Scelta: tutta la scritta, congiunzione compresa', res.ok === true && res.text === 'Zona Prova e zona_prova', JSON.stringify(res));
 check('Scelta: i clic non arrivano a Meta', await page.evaluate(() => window.metaClicks) === 0);
 check('Scelta: il selettore sparisce alla fine', await page.locator('[data-storyflow=picker]').count() === 0);
+
+picked = page.evaluate(() => window.__sfMetaSetup.pick());
+await page.waitForSelector('[data-storyflow=picker] >> text=Clicca sul nome');
+await page.click('#ig');
+await page.click('[data-storyflow=picker] button.choice >> nth=1');
+await page.click('[data-storyflow=picker] >> text=Usa questo nome');
+res = await picked;
+check('Scelta: si può prendere anche solo il profilo', res.ok && res.text === 'zona_prova', JSON.stringify(res));
+
+// Testo già da solo sulla riga: si passa subito alla conferma.
+picked = page.evaluate(() => window.__sfMetaSetup.pick());
+await page.waitForSelector('[data-storyflow=picker] >> text=Clicca sul nome');
+await page.click('#solo');
+await page.waitForSelector('[data-storyflow=picker] >> text=Usa questo nome');
+await page.click('[data-storyflow=picker] >> text=Usa questo nome');
+res = await picked;
+check('Nome da solo sulla riga: conferma diretta', res.ok && res.text === 'Pagina Singola', JSON.stringify(res));
 
 // Elemento con più righe: si sceglie quella giusta.
 picked = page.evaluate(() => window.__sfMetaSetup.pick());
 await page.waitForSelector('[data-storyflow=picker] >> text=Clicca sul nome');
 await page.click('#two');
-await page.waitForSelector('[data-storyflow=picker] >> text=Quale di questi');
+await page.waitForSelector('[data-storyflow=picker] >> text=Quale testo usiamo');
 await page.click('[data-storyflow=picker] button:has-text("Riga due")');
 await page.click('[data-storyflow=picker] >> text=Usa questo nome');
 res = await picked;

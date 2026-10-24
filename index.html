@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>StoryFlow Studio – Editor di storie</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="ui.css?v=4.2.0">
+  <link rel="stylesheet" href="ui.css?v=4.2.1">
 </head>
 <body data-mobile-tab="news">
 
@@ -379,9 +379,14 @@
       <h3>Su quale pagina pubblichiamo?</h3>
       <p>L’ultimo passo, ma il più importante. Prima di ogni pubblicazione StoryFlow controlla che Meta sia aperto proprio sulla tua pagina, cercandone il nome <strong>scritto esattamente come lo scrive Meta</strong>. Così una storia non finisce mai nel posto sbagliato.</p>
 
+      <div class="ob-note ob-both">
+        <strong>📣 Facebook e Instagram in un colpo solo</strong>
+        <span>Se la tua Pagina Facebook è collegata al profilo Instagram, Meta Business Suite pubblica la stessa storia su tutti e due insieme e li mostra uno accanto all’altro, per esempio «Nome della Pagina e nome_profilo». Usa tutta la scritta, «e» compresa: così StoryFlow controlla che siano selezionati entrambi e, se ne manca uno, si ferma invece di pubblicare a metà.</span>
+      </div>
+
       <div class="ob-note ob-auto" id="obPickBox" hidden>
         <strong>✨ Il modo più semplice</strong>
-        <span>Apriamo la pagina di Meta in cui si creano le storie: tu clicchi sul nome della tua pagina e lo copiamo noi, lettera per lettera.</span>
+        <span>Apriamo la pagina di Meta in cui si creano le storie: tu clicchi sul nome della tua pagina e lo copiamo noi, lettera per lettera. Se ci sono Pagina e profilo insieme, ti chiediamo se vuoi tutta la scritta.</span>
         <button type="button" id="btnObPick" class="primary ob-wide">Trova il nome in Meta</button>
         <button type="button" id="btnObPickCancel" class="secondary ob-wide" hidden>Annulla</button>
       </div>
@@ -398,11 +403,11 @@
         <ol class="ob-guide">
           <li>Apri la pagina di Meta Business Suite per creare le storie: <a href="https://business.facebook.com/latest/story_composer/" target="_blank" rel="noopener">business.facebook.com/latest/story_composer</a>. Se hai più pagine, controlla che sia selezionata quella giusta.</li>
           <li>Cerca il riquadro che indica <strong>dove verrà pubblicata la storia</strong>: accanto all’immagine del profilo ci sono il nome della tua Pagina Facebook e, se è collegato, quello del profilo Instagram.</li>
-          <li>Copia il nome <strong>esattamente com’è</strong>: maiuscole, spazi, punti e trattini compresi. Basta anche solo il nome della Pagina.</li>
+          <li>Copia il nome <strong>esattamente com’è</strong>: maiuscole, spazi, punti e trattini compresi. Se pubblichi su Facebook e Instagram insieme, copia tutta la scritta, «e» compresa.</li>
           <li>Incollalo nella casella qui sopra.</li>
         </ol>
         <figure class="ob-figure">
-          <img id="obGuideImage" src="onboarding/dove-pubblichiamo.svg" alt="Schema della pagina per creare le storie: il nome da copiare è nel riquadro che indica dove verrà pubblicata la storia">
+          <img id="obGuideImage" src="onboarding/dove-pubblichiamo.svg" alt="Schema della pagina per creare le storie: la scritta da copiare, con il nome della Pagina e quello del profilo Instagram, è nel riquadro che indica dove verrà pubblicata la storia">
           <figcaption id="obGuideCaption">Illustrazione semplificata: l’aspetto reale di Meta Business Suite può essere diverso.</figcaption>
         </figure>
       </details>
@@ -416,6 +421,6 @@
   </div>
 </div>
 
-<script src="studio.js?v=4.2.0" defer></script>
+<script src="studio.js?v=4.2.1" defer></script>
 </body>
 </html>

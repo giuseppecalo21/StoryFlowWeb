@@ -34,6 +34,10 @@ async function click(wc, expr) {
   return true;
 }
 
+// L'app usa la copia in desktop/engine (aggiornata da "npm start"/build): qui la allineiamo al repository.
+if (fs.existsSync(path.join(root, 'desktop', 'engine'))) {
+  for (const f of ['composer.js', 'manifest.json', 'meta-setup.js']) fs.copyFileSync(path.join(root, 'engine', f), path.join(root, 'desktop', 'engine', f));
+}
 app.setPath('userData', fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'sf-desktop-')));
 const server = http.createServer((req, res) => {
   const file = path.join(root, decodeURIComponent(new URL(req.url, 'http://x').pathname));
@@ -62,10 +66,12 @@ async function run() {
     check('“Trova il nome” apre la pagina delle storie', Boolean(meta));
     await until(() => meta.executeJavaScript('!!document.querySelector("[data-storyflow=picker]")'));
     await click(meta, 'document.getElementById("page")');
+    await until(() => meta.executeJavaScript('!!document.querySelector("[data-storyflow=picker]").shadowRoot.querySelector("button.choice")'));
+    await click(meta, 'document.querySelector("[data-storyflow=picker]").shadowRoot.querySelector("button.choice")');
     await until(() => meta.executeJavaScript('!!document.querySelector("[data-storyflow=picker]").shadowRoot.querySelector("button.main")'));
     await click(meta, 'document.querySelector("[data-storyflow=picker]").shadowRoot.querySelector("button.main")');
     const picked = await until(() => studio.executeJavaScript('window.__res'));
-    check('Il nome cliccato arriva al pannello identico', picked && picked.ok === true && picked.text === 'Zona Prova', JSON.stringify(picked));
+    check('Il nome scelto arriva al pannello identico, congiunzione compresa', picked && picked.ok === true && picked.text === 'Zona Prova e zona_prova', JSON.stringify(picked));
     check('Durante la scelta nessun clic arriva a Meta', await meta.executeJavaScript('window.metaClicks') === 0);
 
     const verified = await studio.executeJavaScript('StoryFlowNative.verifyMetaTarget("Zona Prova e zona_prova")');
