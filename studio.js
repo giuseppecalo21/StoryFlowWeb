@@ -24,13 +24,19 @@
   const cfgStickerText = $('cfgStickerText');
   const cfgMetaTarget = $('cfgMetaTarget');
   const cfgGeminiKey = $('cfgGeminiKey');
+  const cfgAiModel = $('cfgAiModel');
   const cfgWatermarkEnabled = $('cfgWatermarkEnabled');
   const cfgWatermarkOpacity = $('cfgWatermarkOpacity');
   const cfgWatermarkSize = $('cfgWatermarkSize');
   const cfgWatermarkPosition = $('cfgWatermarkPosition');
   const STORE_KEY = 'storyflow.studio.settings.v2.2';
+  const AI_STORE_KEY = 'storyflow.studio.ai.v1';
 
   const isNativeApp = () => Boolean(window.StoryFlowNative && typeof window.StoryFlowNative.startQueue === 'function');
+  const nativePlatform = () => {
+    try { return typeof window.StoryFlowNative.getPlatform === 'function' ? window.StoryFlowNative.getPlatform() : 'android'; }
+    catch (_) { return 'android'; }
+  };
 
   const FONTS = [
     'Montserrat','Big Shoulders Display','Bai Jamjuree','Sofia Sans','Voltaire',
@@ -122,7 +128,7 @@
     const id=siteKey();
     if (!store.sites[id]) {
       const style=blank(); style.stickerText=hostnameLabel();
-      store.sites[id]={defaults:style,logoData:null,stories:{},metaTarget:id.includes('zonawrestling.net')?'Zona Wrestling e zona_wrestling':''};
+      store.sites[id]={defaults:style,logoData:null,stories:{},metaTarget:''};
     }
     const p=store.sites[id];
     p.defaults=safeStyle(p.defaults);
@@ -462,13 +468,13 @@
   function restoreCurrent() {
     const p=getProfile();if(currentArticle)delete p.stories[String(currentArticle.id)];
     currentStyle=safeStyle(p.defaults);inpTitle.value=currentArticle?.title||'';
-    resetPhoto();syncUI();persistStore();
+    resetPhoto();syncUI();persistStore();renderTitleChoices();
   }
   $('btnRestoreTexts').onclick=()=>{
     inpTitle.value=currentArticle?.title||'';
     currentStyle.ctaText=getProfile().defaults.ctaText;
     currentStyle.stickerText=getProfile().defaults.stickerText;
-    syncUI();saveCurrentStory();
+    syncUI();saveCurrentStory();renderTitleChoices();
   };
   function saveDefaults() {
     const p=getProfile();p.defaults=safeStyle(currentStyle);p.metaTarget=cfgMetaTarget.value.trim();
@@ -478,15 +484,20 @@
   $('btnResetStory').onclick=restoreCurrent;$('btnResetStoryVisible').onclick=restoreCurrent;
   $('btnResetPhoto').onclick=()=>{resetPhoto();saveCurrentStory();};
   $('btnSettings').onclick=()=>{const el=$('boxSettings');el.style.display=el.style.display==='none'?'block':'none';};
+  // Il pannello grafica parte sempre chiuso: si apre dal pulsante "Personalizza grafica".
   $('btnToggleEditor').onclick=()=>{
     const panel=$('advancedEditor'), open=panel.hidden;
     panel.hidden=!open;
     $('btnToggleEditor').setAttribute('aria-expanded',String(open));
     $('btnToggleEditor').classList.toggle('expanded',open);
+    $('editorToggleLabel').textContent=open?'Chiudi':'Apri';
   };
 
   $('cfgMetaTarget').addEventListener('input',()=>{getProfile().metaTarget=cfgMetaTarget.value.trim();persistStore();});
-  inpTitle.addEventListener('input',()=>{renderStory();saveCurrentStory();});
+  inpTitle.addEventListener('input',()=>{
+    renderStory();saveCurrentStory();
+    $('titleChoices').querySelectorAll('.title-choice').forEach(b=>b.classList.toggle('active',b.lastChild.textContent.trim()===inpTitle.value.trim()));
+  });
   [[cfgColor,'brandColor'],[cfgDarkColor,'darkColor'],[cfgPattern,'pattern'],
    [cfgTitleFont,'titleFont'],[cfgCtaFont,'ctaFont'],
    [cfgTitleWeight,'titleWeight'],[cfgCtaWeight,'ctaWeight'],[cfgCtaText,'ctaText'],[cfgStickerText,'stickerText'],
@@ -556,7 +567,7 @@
     inpTitle.value=override && typeof override.title==='string'?override.title:it.title;
     const ps=override?.photoState;
     photoState=ps?{panX:Number(ps.panX)||0,panY:Number(ps.panY)||0,zoom:clamp(Number(ps.zoom)||1,.5,2.5)}:{panX:0,panY:0,zoom:1};
-    loadedImg=null;syncUI();
+    loadedImg=null;syncUI();renderTitleChoices();
     if(it.image) {
       photoPromise=new Promise(resolve=>{
         const img=new Image();img.crossOrigin='anonymous';
@@ -579,14 +590,20 @@
       listEl.textContent='';$('newsCount').textContent=data.items.length+' articoli';$('statNews').textContent=data.items.length;
       const sourceHint=$('feedSource');if(sourceHint)sourceHint.textContent='Fonte: '+(data.source==='rss'?'Feed RSS / Atom':'WordPress REST API');
       data.items.forEach((it,idx)=>{
-        const card=document.createElement('div');card.className='news-card';
+        const card=document.createElement('div');card.className='news-card';card.dataset.articleId=String(it.id);
         const image=document.createElement('img');image.alt='';
         if(it.image)image.src=`proxy.php?action=img&url=${encodeURIComponent(it.image)}`;
         const column=document.createElement('div'),h=document.createElement('h4'),sub=document.createElement('div');
-        h.textContent=it.title;sub.textContent='#'+it.id;sub.className='news-meta';column.append(h,sub);card.append(image,column);
+        h.textContent=it.title;sub.textContent='#'+it.id;sub.className='news-meta';column.append(h,sub);
+        // Aggiunta rapida: stessa grafica predefinita (o già personalizzata) senza aprire l'editor.
+        const quick=document.createElement('button');quick.type='button';quick.className='quick-queue';
+        quick.title='Aggiungi subito alla coda di pubblicazione';
+        quick.onclick=event=>{event.stopPropagation();quickAdd(it,card,quick);};
+        card.append(image,column,quick);
         card.onclick=()=>selectArticle(it,card,true);listEl.appendChild(card);
         if(idx===0)selectArticle(it,card,false);
       });
+      refreshQuickButtons();
     } catch(err){listEl.textContent='Errore lettura feed: '+err.message;}
   }
   $('btnFetch').onclick=fetchNews;
@@ -595,24 +612,93 @@
     store.lastSite=siteUrl.value.trim();persistStore();
     currentArticle=null;articleToken++;loadedImg=null;photoPromise=Promise.resolve();
     $('newsList').textContent='Premi “Carica notizie” per il nuovo sito.';
-    currentStyle=safeStyle(getProfile().defaults);inpTitle.value='';resetPhoto();syncUI();loadLogo();loadBackground();
+    currentStyle=safeStyle(getProfile().defaults);inpTitle.value='';resetPhoto();syncUI();loadLogo();loadBackground();renderTitleChoices();
   });
 
-  $('btnAiRewrite').onclick=async()=>{
-    const key=cfgGeminiKey.value.trim();
-    if(!key) {$('boxSettings').style.display='block';alert('Inserisci la Gemini API Key nelle impostazioni.');return;}
-    const button=$('btnAiRewrite');button.disabled=true;button.textContent='⏳...';
-    try {
-      const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({contents:[{parts:[{text:`Riscrivi questo titolo di notizia per una Instagram/Facebook Story in italiano. Mantieni il senso giornalistico fedele, massimo 110 caratteri, diretto e d'impatto, restituisci SOLO il titolo senza virgolette esterne:\n\n${inpTitle.value}` }]}]})
+  // --- TITOLI ALTERNATIVI CON AI (3 proposte + titolo originale del sito) ---
+  // Il fornitore è isolato in requestAiTitles(): per passare a un altro servizio basta cambiare quella funzione.
+  const AI_MODELS=['gemini-flash-latest','gemini-3.5-flash','gemini-2.5-flash'];
+  const aiTitles=new Map();
+  let aiSettings={key:'',model:''};
+  try {
+    const saved=JSON.parse(localStorage.getItem(AI_STORE_KEY)||'{}');
+    aiSettings={key:String(saved.key||''),model:String(saved.model||'')};
+  } catch(_) {}
+  cfgGeminiKey.value=aiSettings.key;cfgAiModel.value=aiSettings.model;
+  const saveAiSettings=()=>{
+    aiSettings={key:cfgGeminiKey.value.trim(),model:cfgAiModel.value.trim()};
+    try{localStorage.setItem(AI_STORE_KEY,JSON.stringify(aiSettings));}catch(_){}
+  };
+  cfgGeminiKey.addEventListener('change',saveAiSettings);cfgAiModel.addEventListener('change',saveAiSettings);
+
+  const titlePrompt=original=>[
+    'Sei il social media editor di una testata online. Partendo dal titolo qui sotto scrivi 3 titoli alternativi per una storia Instagram/Facebook con link all\'articolo.',
+    'Regole:',
+    '- Scrivi nella stessa lingua del titolo originale.',
+    '- Devono incuriosire e invogliare a toccare il link, ma restare fedeli alla notizia: non aggiungere fatti, nomi, numeri, date o citazioni che non compaiono nel titolo originale e non cambiarne il senso.',
+    '- Usa espressioni naturali e idiomatiche di quella lingua, mai calchi dall\'inglese.',
+    '- Massimo 110 caratteri ciascuno, niente hashtag, niente emoji, niente virgolette all\'inizio o alla fine.',
+    '- I 3 titoli devono avere approcci diversi tra loro (per esempio curiosità, impatto, domanda).',
+    '',
+    'Titolo originale: '+original
+  ].join('\n');
+
+  async function requestAiTitles(original) {
+    const key=aiSettings.key;
+    if(!key) throw Error('Inserisci la chiave API Gemini in “Impostazioni sito”.');
+    const models=[...new Set([aiSettings.model,...AI_MODELS].filter(Boolean))];
+    let lastError='nessun modello disponibile';
+    for(const model of models) {
+      const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
+        method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},
+        body:JSON.stringify({
+          contents:[{parts:[{text:titlePrompt(original)}]}],
+          generationConfig:{temperature:0.9,responseMimeType:'application/json',
+            responseSchema:{type:'OBJECT',properties:{titles:{type:'ARRAY',items:{type:'STRING'}}},required:['titles']}}
+        })
       });
-      const json=await response.json();
-      if(!response.ok)throw Error(json.error?.message||'Errore API');
-      const result=json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      if(result){inpTitle.value=result;renderStory();saveCurrentStory();}
-    }catch(err){alert('Errore Gemini API: '+err.message);}
-    finally{button.disabled=false;button.textContent='Riscrivi con AI';}
+      const json=await response.json().catch(()=>({}));
+      // Modello ritirato o non disponibile per questa chiave: si prova il successivo.
+      if(response.status===404 || json.error?.status==='NOT_FOUND'){lastError=`${model}: non disponibile`;continue;}
+      if(!response.ok) throw Error(json.error?.message||('HTTP '+response.status));
+      const raw=(json.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
+      let list;
+      try { list=JSON.parse(raw).titles; } catch(_) { list=raw.split('\n'); }
+      const clean=[...new Set((Array.isArray(list)?list:[]).map(t=>String(t).replace(/^\s*(?:\d+[.)]\s+|[-•*]\s+)/,'').replace(/^[\s"“”«»']+|[\s"“”«»']+$/g,'').trim()))]
+        .filter(t=>t && t.toLowerCase()!==original.trim().toLowerCase()).map(t=>t.slice(0,140)).slice(0,3);
+      if(!clean.length) throw Error('Risposta AI senza titoli utilizzabili');
+      return clean;
+    }
+    throw Error(lastError);
+  }
+
+  function renderTitleChoices() {
+    const box=$('titleChoices');box.textContent='';
+    const alts=currentArticle?aiTitles.get(String(currentArticle.id)):null;
+    if(!alts?.length){box.hidden=true;return;}
+    box.hidden=false;
+    const current=inpTitle.value.trim();
+    [{tag:'Dal sito',text:currentArticle.title},...alts.map((text,i)=>({tag:'AI '+(i+1),text}))].forEach(option=>{
+      const choice=document.createElement('button');choice.type='button';choice.className='title-choice';
+      choice.classList.toggle('active',option.text.trim()===current);
+      const tag=document.createElement('span');tag.className='title-choice-tag';tag.textContent=option.tag;
+      const text=document.createElement('span');text.textContent=option.text;
+      choice.append(tag,text);
+      choice.onclick=()=>{inpTitle.value=option.text;renderStory();saveCurrentStory();renderTitleChoices();};
+      box.appendChild(choice);
+    });
+  }
+
+  $('btnAiTitles').onclick=async()=>{
+    if(!currentArticle)return alert('Seleziona prima una notizia!');
+    if(!aiSettings.key){$('boxSettings').style.display='block';cfgGeminiKey.focus();alert('Inserisci la chiave API Gemini nelle impostazioni del sito.');return;}
+    const button=$('btnAiTitles'),article=currentArticle;
+    button.disabled=true;button.textContent='⏳ Genero i titoli…';
+    try {
+      aiTitles.set(String(article.id),await requestAiTitles(article.title));
+      if(currentArticle===article)renderTitleChoices();
+    } catch(err){alert('Titoli AI non disponibili: '+err.message);}
+    finally{button.disabled=false;button.textContent='✨ 3 titoli alternativi';}
   };
 
   async function exportStoryDataUrl() {
@@ -634,6 +720,7 @@
     $('queueCount').textContent=queue.length;
     $('statQueue').textContent=queue.length;
     const mobBadge=$('mobQueueBadge'); if(mobBadge) mobBadge.textContent=queue.length;
+    refreshQuickButtons();
     const el=$('queueList');el.textContent='';
     if(!queue.length){const p=document.createElement('p');p.className='small-note';p.textContent='Modifica una o più storie e clicca su “Aggiungi in Coda”.';el.appendChild(p);return;}
     queue.forEach((item,idx)=>{
@@ -644,16 +731,50 @@
       remove.onclick=()=>{queue.splice(idx,1);updateQueueUI();};row.append(img,label,remove);el.appendChild(row);
     });
   }
+  const isQueued=id=>queue.some(item=>String(item.id)===String(id));
+  function refreshQuickButtons() {
+    document.querySelectorAll('.news-card').forEach(card=>{
+      const b=card.querySelector('.quick-queue');if(!b||b.dataset.busy)return;
+      const queued=isQueued(card.dataset.articleId);
+      card.classList.toggle('queued',queued);
+      b.textContent=queued?'✓ In coda':'＋ Coda';
+      b.disabled=queued;
+    });
+  }
+  // Prepara la storia dell'articolo selezionato; se è già in coda la sostituisce con la versione aggiornata.
+  async function addCurrentToQueue() {
+    const article=currentArticle;
+    const jpg=await exportStoryDataUrl();
+    const item={id:article.id,title:inpTitle.value.trim()||article.title,url:article.url,dataUrl:jpg,
+      stickerText:currentStyle.stickerText.trim()||hostnameLabel(),metaTarget:cfgMetaTarget.value.trim()};
+    const existing=queue.findIndex(q=>String(q.id)===String(article.id));
+    if(existing>=0)queue[existing]=item;else queue.push(item);
+    updateQueueUI();
+    return existing>=0;
+  }
+  // Le aggiunte rapide vanno in fila: ognuna usa l'anteprima condivisa, quindi non possono sovrapporsi.
+  let quickChain=Promise.resolve();
+  function quickAdd(article,card,button) {
+    if(isQueued(article.id)||button.dataset.busy)return;
+    button.dataset.busy='1';button.disabled=true;button.textContent='⏳';
+    quickChain=quickChain.then(async()=>{
+      try {
+        selectArticle(article,card,false);
+        await addCurrentToQueue();
+      } catch(e){alert('Errore preparazione storia: '+e.message);}
+      finally{delete button.dataset.busy;refreshQuickButtons();}
+    });
+  }
   $('btnAddQueue').onclick=async()=>{
     if(!currentArticle)return alert('Seleziona prima una notizia!');
     const b=$('btnAddQueue');b.disabled=true;b.textContent='⏳ Elaborazione...';
-    try {
-      const jpg=await exportStoryDataUrl();
-      queue.push({id:currentArticle.id,title:inpTitle.value.trim()||currentArticle.title,url:currentArticle.url,dataUrl:jpg,
-        stickerText:currentStyle.stickerText.trim()||hostnameLabel(),metaTarget:cfgMetaTarget.value.trim()});
-      updateQueueUI();
-    }catch(e){alert('Errore preparazione storia: '+e.message);}
-    finally{b.disabled=false;b.textContent='➕ Aggiungi Storia in Coda';}
+    let replaced=false;
+    try { replaced=await addCurrentToQueue(); }
+    catch(e){alert('Errore preparazione storia: '+e.message);}
+    finally{
+      b.disabled=false;b.textContent=replaced?'✓ Storia in coda aggiornata':'➕ Aggiungi Storia in Coda';
+      if(replaced)setTimeout(()=>{b.textContent='➕ Aggiungi Storia in Coda';},2000);
+    }
   };
   $('btnClearQueue').onclick=()=>{queue=[];updateQueueUI();};
 
@@ -675,12 +796,22 @@
     $('extensionGate').hidden=extensionConnected;
     const status=$('extStatus');
     status.classList.toggle('online',extensionConnected);
-    status.textContent=isNativeApp()?'App Mobile · Pronta':(extensionConnected?'Motore collegato':(label||'Motore da collegare'));
+    const appLabel=nativePlatform()==='desktop'?'App desktop · Pronta':'App Android · Pronta';
+    status.textContent=isNativeApp()?appLabel:(extensionConnected?'Motore collegato':(label||'Motore da collegare'));
     if(!workflowActive)$('statStatus').textContent=extensionConnected?'Pronto':'In attesa';
     if(isNativeApp()){
       $('btnMetaLogin').hidden=false;
       $('btnRevealWork').hidden=false;
+      $('btnExtension').hidden=true;
+      showEngineVersion();
     }
+  }
+  function showEngineVersion() {
+    try {
+      if(typeof window.StoryFlowNative.getEngineInfo!=='function')return;
+      const info=JSON.parse(window.StoryFlowNative.getEngineInfo()||'{}');
+      if(info.version)$('versionTag').textContent=`VERSIONE 4.0 · MOTORE ${info.version}`;
+    } catch(_) {}
   }
 
   $('btnMetaLogin').onclick=()=>{
@@ -755,7 +886,13 @@
 
   function startQueue(dryRun){
     if(!queue.length)return alert('La coda è vuota. Aggiungi almeno una storia.');
-    if(queue.some(it=>!it.metaTarget))return alert('Configura il nome della pagina/profili in “Impostazioni sito”, poi ricrea la coda.');
+    // Il nome dei canali serve a verificare di pubblicare sull'account giusto.
+    const target=cfgMetaTarget.value.trim();
+    queue.forEach(it=>{ if(!it.metaTarget)it.metaTarget=target; });
+    if(queue.some(it=>!it.metaTarget)){
+      $('boxSettings').style.display='block';cfgMetaTarget.focus();
+      return alert('Scrivi in “Impostazioni sito” il nome della Pagina/profilo su cui pubblicare, così StoryFlow controlla di usare l’account giusto.');
+    }
     if(workflowActive)return alert('Una richiesta è già in corso.');
 
     activeRequestId='sf-'+Date.now();

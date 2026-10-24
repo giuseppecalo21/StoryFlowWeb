@@ -1,13 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "StoryFlow SaaS – Meta Story Link Auto-Publisher",
-  "version": "2.6.2",
-  "description": "StoryFlow Stable: motore di pubblicazione verificato 2.5.2, interfaccia essenziale e diagnostica.",
+  "name": "StoryFlow – Pubblicazione automatica storie",
+  "version": "3.0.0",
+  "description": "StoryFlow: pubblica le storie preparate nel pannello su Meta Business Suite, con motore aggiornabile dal server.",
   "permissions": [
     "debugger",
     "storage",
+    "unlimitedStorage",
     "tabs",
-    "scripting"
+    "scripting",
+    "userScripts"
   ],
   "host_permissions": [
     "https://business.facebook.com/*",
@@ -40,18 +42,10 @@
       ],
       "run_at": "document_start",
       "world": "MAIN"
-    },
-    {
-      "matches": [
-        "https://business.facebook.com/latest/story_composer/*"
-      ],
-      "js": [
-        "composer.js"
-      ],
-      "run_at": "document_start"
     }
   ],
   "action": {
     "default_title": "Connetti StoryFlow alla dashboard aperta"
-  }
+  },
+  "minimum_chrome_version": "120"
 }

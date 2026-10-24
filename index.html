@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>StoryFlow Studio – Editor di storie</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="ui.css?v=3.0.0">
+  <link rel="stylesheet" href="ui.css?v=4.0.0">
 </head>
 <body data-mobile-tab="news">
 
@@ -19,7 +19,7 @@
     <button class="primary" id="btnFetch">Carica notizie</button>
     <button class="secondary" id="btnSettings">Impostazioni sito</button>
     <button class="secondary" id="btnMetaLogin" hidden>🔑 Account Meta</button>
-    <button class="secondary" id="btnExtension">Estensione Chrome</button>
+    <button class="secondary" id="btnExtension">Scarica app</button>
     <span id="extStatus" class="badge-ext">Verifica motore...</span>
   </div>
 </header>
@@ -27,7 +27,7 @@
 <nav class="subnav" aria-label="Navigazione studio">
   <span class="subnav-current">Studio editor</span>
   <span>Gestione storie / Editor 1080 × 1920</span>
-  <span class="version-tag">VERSIONE 3.0 MOBILE & CLOUD</span>
+  <span class="version-tag" id="versionTag">VERSIONE 4.0</span>
 </nav>
 
 <section class="overview">
@@ -80,9 +80,10 @@
       <div class="control-group">
         <label>
           <span>Titolo nella Storia</span>
-          <button type="button" id="btnAiRewrite" style="padding:2px 8px;font-size:11px;background:#4f46e5;border:none;color:#fff;">Riscrivi con AI</button>
+          <button type="button" id="btnAiTitles" class="ai-button" title="Genera 3 titoli alternativi con l'intelligenza artificiale">✨ 3 titoli alternativi</button>
         </label>
         <textarea id="inpTitle" placeholder="Seleziona una notizia..."></textarea>
+        <div id="titleChoices" class="title-choices" aria-live="polite" hidden></div>
         <label for="cfgStickerText" style="margin-top:12px;">Testo adesivo link (pulsante cliccabile)</label>
         <input type="text" id="cfgStickerText" maxlength="70" value="WORDPRESS.ORG" placeholder="Nome del sito" style="width:100%;">
         <label for="cfgCtaText" style="margin-top:10px;">Testo barra invito all'azione</label>
@@ -92,12 +93,13 @@
         </div>
       </div>
 
-      <button type="button" class="editor-toggle expanded" id="btnToggleEditor" aria-expanded="true" aria-controls="advancedEditor">
-        <span><strong>Personalizza grafica</strong><small>Font, colori, pattern, sfondo, watermark e inquadratura</small></span>
-        <span class="editor-chevron" aria-hidden="true">⌄</span>
+      <button type="button" class="editor-toggle" id="btnToggleEditor" aria-expanded="false" aria-controls="advancedEditor">
+        <span class="editor-toggle-icon" aria-hidden="true">🎨</span>
+        <span class="editor-toggle-text"><strong>Personalizza grafica</strong><small>Font, colori, pattern, sfondo, logo e inquadratura</small></span>
+        <span class="editor-toggle-action"><span id="editorToggleLabel">Apri</span> <span class="editor-chevron" aria-hidden="true">⌄</span></span>
       </button>
 
-      <div id="advancedEditor" class="advanced-editor">
+      <div id="advancedEditor" class="advanced-editor" hidden>
         <div class="control-group compact-editor-controls">
           <label><span>Tipografia e posizione</span></label>
           <div class="row-2" style="margin-top:8px;">
@@ -115,7 +117,7 @@
         <div class="control-group">
           <label><span>Stile grafico</span><span id="saveStatus" class="save-hint">Salvataggio locale</span></label>
           <div class="row-2">
-            <div><label for="cfgColor">Colore del brand</label><input type="color" id="cfgColor" value="#e61928" class="color-control"></div>
+            <div><label for="cfgColor">Colore del brand</label><input type="color" id="cfgColor" value="#6047e8" class="color-control"></div>
             <div><label for="cfgDarkColor">Colore aree scure</label><input type="color" id="cfgDarkColor" value="#181818" class="color-control"></div>
           </div>
           <label for="cfgPattern" style="margin-top:12px;">Pattern di sfondo <span id="patternCount">24 stili</span></label>
@@ -201,9 +203,11 @@
         <label><span>Configurazione Brand & Canali</span></label>
         <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
           <label for="cfgMetaTarget">Pagina/profili collegati (testo da verificare)</label>
-          <input type="text" id="cfgMetaTarget" value="Zona Wrestling e zona_wrestling" placeholder="Nome canali collegati">
-          <label for="cfgGeminiKey">Gemini API Key</label>
+          <input type="text" id="cfgMetaTarget" value="" placeholder="Es. Nome della Pagina e nome_profilo">
+          <label for="cfgGeminiKey">Chiave API Gemini (titoli alternativi)</label>
           <input type="password" id="cfgGeminiKey" placeholder="AIzaSy..." autocomplete="off">
+          <label for="cfgAiModel">Modello AI (facoltativo)</label>
+          <input type="text" id="cfgAiModel" placeholder="Automatico" autocomplete="off">
           <button type="button" id="btnSaveDefaults" class="primary">💾 Salva stile predefinito</button>
           <button type="button" id="btnResetStory" class="secondary">↩ Ripristina storia</button>
         </div>
@@ -231,10 +235,10 @@
           <span class="gate-indicator" aria-hidden="true"></span>
           <div>
             <strong>Motore di pubblicazione non collegato</strong>
-            <p>Usa l'App Mobile StoryFlow (che integra già il motore automatico) oppure attiva l'estensione Chrome da PC.</p>
+            <p>Usa l'app StoryFlow per Windows/Mac o per Android: il motore è già integrato. In alternativa puoi usare l'estensione Chrome.</p>
           </div>
           <button type="button" id="btnRecheckExtension" class="secondary">Rileva</button>
-          <button type="button" id="btnOpenExtensionGate" class="secondary">Info</button>
+          <button type="button" id="btnOpenExtensionGate" class="secondary">Scarica</button>
         </div>
       </div>
     </div>
@@ -294,13 +298,17 @@
 
 <div id="extensionModal" class="modal-backdrop" hidden>
   <div class="install-dialog" role="dialog" aria-modal="true">
-    <div class="install-header"><h2>Motore di Pubblicazione</h2><button type="button" id="btnCloseExtension">✕</button></div>
-    <p>Nell'<strong>App Android/iOS StoryFlow</strong> il motore è già integrato: premi semplicemente su <strong>🔑 Account Meta</strong> in alto per accedere a Facebook Business Suite la prima volta.</p>
-    <p style="margin-top:10px;">Se invece stai usando un PC desktop con Chrome, puoi scaricare e collegare l'estensione Chrome:</p>
-    <a class="download-extension" href="storyflow-extension.zip" download="storyflow-extension.zip">⬇️ Scarica estensione Chrome (.zip)</a>
+    <div class="install-header"><h2>Scarica StoryFlow</h2><button type="button" id="btnCloseExtension">✕</button></div>
+    <p>Le app StoryFlow integrano già il motore di pubblicazione: installa, accedi a Meta Business Suite una volta con il tuo normale account e pubblica.</p>
+    <div class="download-grid">
+      <a class="download-extension" href="download/StoryFlowStudio-Setup.exe">⬇️ App per Windows</a>
+      <a class="download-extension" href="download/StoryFlowStudio.dmg">⬇️ App per Mac</a>
+      <a class="download-extension secondary-download" href="download/StoryFlow.apk">⬇️ App per Android</a>
+    </div>
+    <p class="small-note">Preferisci restare su Chrome? <a href="storyflow-extension.zip" download="storyflow-extension.zip">Scarica l'estensione (.zip)</a>: si installa in modalità sviluppatore.</p>
   </div>
 </div>
 
-<script src="studio.js?v=3.0.0" defer></script>
+<script src="studio.js?v=4.0.0" defer></script>
 </body>
 </html>

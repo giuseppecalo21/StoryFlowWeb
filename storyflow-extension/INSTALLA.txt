@@ -1,10 +1,15 @@
-StoryFlow Stable 2.6.2
+StoryFlow – estensione Chrome 3.0.0
 
-1. Vai su chrome://extensions e attiva Modalità sviluppatore.
+Consiglio: su Windows e Mac usa l'app StoryFlow Studio, che non richiede l'estensione.
+Se preferisci restare su Chrome:
+
+1. Vai su chrome://extensions e attiva «Modalità sviluppatore».
 2. Disattiva eventuali altre estensioni StoryFlow.
-3. Carica la cartella storyflow-extension tramite Carica estensione non pacchettizzata.
-4. Torna nella dashboard e premi Ctrl+Shift+R.
-5. Verifica «Estensione collegata · 2.6.2».
-6. Prova una sola storia in modalità Test.
+3. Carica la cartella storyflow-extension con «Carica estensione non pacchettizzata».
+4. Apri «Dettagli» dell'estensione e attiva «Consenti script utente»:
+   così il motore di pubblicazione si aggiorna da solo quando Meta cambia l'interfaccia.
+   Senza questo interruttore l'estensione funziona lo stesso, ma usa solo il motore incluso nel pacchetto.
+5. Torna nel pannello StoryFlow e premi Ctrl+Shift+R.
+6. Verifica «Motore collegato» e prova una sola storia in modalità Test.
 
-IMPORTANTE: la scheda di lavoro è intenzionalmente in primo piano: non spostarla né chiuderla durante l'operazione. L'interfaccia Meta è coperta da un riepilogo StoryFlow che non blocca i clic.
+IMPORTANTE: durante la pubblicazione la scheda di Meta resta in primo piano: non spostarla né chiuderla.

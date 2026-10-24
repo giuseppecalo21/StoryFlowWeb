@@ -1,0 +1,49 @@
+{
+  "name": "storyflow-desktop",
+  "productName": "StoryFlow Studio",
+  "version": "1.0.0",
+  "description": "StoryFlow Studio per Windows e Mac: pannello storie e pubblicazione automatica senza estensione Chrome.",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "sync-engine": "node scripts/sync-engine.mjs",
+    "start": "npm run sync-engine && electron .",
+    "dist:win": "npm run sync-engine && electron-builder --win",
+    "dist:mac": "npm run sync-engine && electron-builder --mac",
+    "dist:linux": "npm run sync-engine && electron-builder --linux",
+    "check": "tsc -p jsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "electron": "44.7.0",
+    "electron-builder": "26.17.0",
+    "typescript": "^5.9.3"
+  },
+  "build": {
+    "appId": "app.storyflow.desktop",
+    "productName": "StoryFlow Studio",
+    "files": [
+      "src/**/*",
+      "engine/**/*",
+      "config.json",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.social-networking"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}

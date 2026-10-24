@@ -1,10 +1,22 @@
-/* StoryFlow 2.1 — intercetta il selettore file nel contesto JS di Meta.
- * Questo file deve essere dichiarato nel manifest con world: MAIN.
- * Non riceve immagini né dati sensibili: invia soltanto un evento DOM
- * con il riferimento all'input, che composer.js riempie dal mondo ISOLATED.
+/* StoryFlow 3.0 — gira nel contesto JS di Meta (world: MAIN) sul composer delle storie.
+ * - Intercetta il selettore file e avvisa il motore con un evento DOM (il motore riempie l'input).
+ * - Durante una pubblicazione automatica disattiva l'avviso "Vuoi abbandonare la pagina?".
+ * Non riceve immagini né dati sensibili.
  */
 (() => {
   'use strict';
+
+  const AUTO_HASHES = ['#sfauto', '#sftest'];
+  if (AUTO_HASHES.some(h => location.hash.startsWith(h))) {
+    try {
+      const origAdd = EventTarget.prototype.addEventListener;
+      EventTarget.prototype.addEventListener = function (type, fn, opt) {
+        if (String(type).toLowerCase() === 'beforeunload') return;
+        return origAdd.call(this, type, fn, opt);
+      };
+      Object.defineProperty(window, 'onbeforeunload', { configurable: true, get: () => null, set: () => {} });
+    } catch (_) {}
+  }
 
   const ARM = 'storyflow-file-picker-arm';
   const DISARM = 'storyflow-file-picker-disarm';
@@ -20,7 +32,7 @@
 
   function notify(input) {
     // Alcune UI creano l'input soltanto per il tempo del click: il
-    // content script isolato deve poter ricevere l'evento anche allora.
+    // motore (in un contesto isolato) deve poter ricevere l'evento anche allora.
     if (!input.isConnected) {
       input.style.display = 'none';
       (document.body || document.documentElement).appendChild(input);
