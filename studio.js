@@ -622,11 +622,13 @@
   // al successivo: i limiti gratuiti di Google valgono per singolo modello.
   // Il fornitore è isolato in requestAiTitles(): per passare a un altro servizio basta cambiare quella funzione.
   const GEMINI_API='https://generativelanguage.googleapis.com/v1beta/models';
-  const AI_MODELS=['gemini-flash-latest','gemini-flash-lite-latest','gemini-2.5-flash','gemini-2.5-flash-lite'];
-  const AI_TIMEOUT_MS=Number(window.__SF_AI_TIMEOUT_MS)||25000;
-  const AI_TOTAL_MS=Number(window.__SF_AI_TOTAL_MS)||50000;
+  // Ordine scelto misurando i tempi reali (ottobre 2026): 3.5 Flash risponde in pochi secondi,
+  // l'alias gemini-flash-latest può impiegarne più di 20. I modelli ritirati rispondono 404 e vengono saltati.
+  const AI_MODELS=['gemini-3.5-flash','gemini-flash-lite-latest','gemini-3.5-flash-lite','gemini-flash-latest'];
+  const AI_TIMEOUT_MS=Number(window.__SF_AI_TIMEOUT_MS)||20000;
+  const AI_TOTAL_MS=Number(window.__SF_AI_TOTAL_MS)||45000;
   const AI_MAX_ATTEMPTS=6;
-  const AI_CACHE_KEY='storyflow.studio.aititles.v2';
+  const AI_CACHE_KEY='storyflow.studio.aititles.v4';
   const AI_KEY_URL='https://aistudio.google.com/apikey';
   const aiState=new Map();
   let aiSettings={key:'',model:''}, aiCache={}, listedModels=null, aiTimer=null;
@@ -655,23 +657,34 @@
 
   // Tre titoli in scala di curiosità: leggero → medio → forte, ognuno con una tecnica diversa.
   const AI_LEVELS=[['leggero','● Leggero'],['medio','●● Medio'],['forte','●●● Forte']];
+  // La curiosità nasce togliendo informazioni presenti nel titolo originale, mai aggiungendone di nuove.
   const titlePrompt=original=>[
     'Sei il social media editor di una testata giornalistica online. Scrivi 3 titoli alternativi per una storia Instagram/Facebook che rimanda all\'articolo con un adesivo link.',
     '',
-    'OBIETTIVO: creare un "curiosity gap". Il lettore deve capire di cosa si parla, ma restare con un vuoto di informazione che può colmare solo toccando il link.',
-    'I 3 titoli sono una scala di intensità crescente:',
-    '- leggero: il fatto principale è chiaro; aggiungi solo un piccolo aggancio che invoglia ad approfondire (un dettaglio, il motivo, il retroscena).',
-    '- medio: dici il tema e i protagonisti, ma trattieni l\'elemento chiave (l\'esito, la decisione, il motivo) e lo rendi desiderabile.',
-    '- forte: massima curiosità. Costruisci il titolo attorno all\'informazione mancante, con un taglio deciso, restando credibile.',
+    'COME CREARE CURIOSITÀ (curiosity gap): non aggiungere niente, togli. Prendi un\'informazione che è già nel titolo originale (chi, cosa, dove, quando, quanto, l\'esito) e tienila nascosta, lasciando capire che la risposta è nell\'articolo.',
+    'Scala di intensità:',
+    '- leggero: restano tutte le informazioni principali; la notizia è solo raccontata in modo più vivace e diretto.',
+    '- medio: rendi generico un elemento che il lettore vuole davvero sapere (il protagonista diventa per esempio "una delle stelle", la decisione diventa "la scelta"), così capisce l\'argomento ma non tutto.',
+    '- forte: nascondi l\'informazione più importante del titolo originale (il fatto o il protagonista); resta solo il contesto che serve a capire l\'argomento.',
+    'Nascondi sempre un elemento interessante, mai un dettaglio banale: chiedersi il mese o il numero di anni non incuriosisce nessuno.',
     '',
-    'VARIETÀ: ogni titolo usa una tecnica diversa dagli altri (per esempio dettaglio inatteso, domanda, contrasto prima/dopo, conseguenza, rivelazione rimandata) e comincia in modo diverso. Non devono essere tre varianti della stessa frase.',
+    'VARIETÀ: ogni titolo ha una struttura e un attacco diversi (affermazione, frase con i due punti, domanda…). Al massimo uno dei tre può essere una domanda. Non devono essere tre varianti della stessa frase.',
     '',
     'REGOLE GIORNALISTICHE (obbligatorie):',
-    '- Usa solo le informazioni del titolo originale: non aggiungere fatti, nomi, numeri, date, luoghi o citazioni e non cambiarne il senso.',
-    '- Puoi nascondere un\'informazione, ma non promettere mai qualcosa che la notizia non contiene e non essere fuorviante.',
-    '- Evita le formule da acchiappaclic logore: "non crederai", "incredibile", "shock", "clamoroso", "pazzesco", "ecco cosa è successo", "lascia tutti senza parole" e simili.',
-    '- Scrivi nella stessa lingua del titolo originale, con espressioni naturali e idiomatiche: mai calchi dall\'inglese.',
-    '- Massimo 110 caratteri ciascuno; niente hashtag, emoji, virgolette all\'inizio o alla fine, né maiuscolo per enfasi.',
+    '- Usa solo ciò che è scritto nel titolo originale. Vietato aggiungere fatti, nomi, numeri, date, luoghi, cause, motivi, retroscena, reazioni o citazioni.',
+    '- Non cambiare il significato: ciò che è certo resta certo (se "salta" lo show, non scrivere "è a rischio") e i termini del settore restano quelli (un wrestler non diventa un "giocatore").',
+    '- Vietati aggettivi e giudizi che il titolo originale non contiene, come "a sorpresa", "inattesa", "clamorosa", "storica", "straordinaria", "dell\'ultimo minuto", "che sorprende tutti".',
+    '- Non promettere contenuti che il titolo originale non garantisce: niente "ecco perché", "il motivo", "i dettagli", "spiega", "svela" se l\'originale non li annuncia.',
+    '- Vietate le formule acchiappaclic logore: "non crederai", "incredibile", "shock", "pazzesco", "ecco cosa è successo", "lascia tutti senza parole".',
+    '- Stessa lingua del titolo originale, con espressioni naturali e idiomatiche, mai calchi dall\'inglese.',
+    '- Brevi e incisivi: idealmente 50-90 caratteri, mai oltre 110. Niente hashtag, emoji, virgolette all\'inizio o alla fine, né maiuscolo per enfasi.',
+    '',
+    'ESEMPIO (solo per capire il metodo, non riusarne le parole)',
+    'Titolo originale: Il club ufficializza l\'acquisto del nuovo attaccante brasiliano',
+    '- leggero: Il club ha il suo nuovo attaccante: ufficiale l\'arrivo dal Brasile',
+    '- medio: Ufficiale il nuovo attaccante del club: ecco da dove arriva',
+    '- forte: Il club ha chiuso l\'operazione: chi è il nuovo arrivo?',
+    'Sbagliato: "Il club piazza il colpo a sorpresa dal Brasile" (aggiunge "a sorpresa"); "Ecco perché il club ha scelto il brasiliano" (promette un motivo che il titolo non cita).',
     '',
     'Titolo originale: '+original
   ].join('\n');
@@ -730,15 +743,19 @@
       const model=queue.shift();
       if(tried.has(model))continue;
       tried.add(model);
-      const r=await fetchJson(`${GEMINI_API}/${encodeURIComponent(model)}:generateContent`,{
+      const call=withThinking=>fetchJson(`${GEMINI_API}/${encodeURIComponent(model)}:generateContent`,{
         method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},
         body:JSON.stringify({
           contents:[{parts:[{text:titlePrompt(original)}]}],
           generationConfig:{temperature:0.9,responseMimeType:'application/json',
             responseSchema:{type:'OBJECT',properties:Object.fromEntries(AI_LEVELS.map(([k])=>[k,{type:'STRING'}])),
-              required:AI_LEVELS.map(([k])=>k),propertyOrdering:AI_LEVELS.map(([k])=>k)}}
+              required:AI_LEVELS.map(([k])=>k),propertyOrdering:AI_LEVELS.map(([k])=>k)},
+            // Ragionamento interno ridotto: con quello predefinito i modelli recenti impiegano decine di secondi.
+            ...(withThinking?{thinkingConfig:{thinkingLevel:'low'}}:{})}
         })
       },AI_TIMEOUT_MS);
+      let r=await call(true);
+      if(r.status===400 && !/api.?key/i.test(String(r.json.error?.message||'')))r=await call(false);
       const message=String(r.json.error?.message||'');
       if(r.status===401 || r.status===403 || (r.status===400 && /api.?key/i.test(message)))
         throw Error('La chiave API non è valida o non ha i permessi: controllala in “Impostazioni sito”.');

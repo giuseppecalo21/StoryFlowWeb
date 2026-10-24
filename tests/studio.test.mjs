@@ -77,10 +77,11 @@ async function openStudio(browser, { desktop = false, viewport = { width: 1440, 
     const body = JSON.parse(r.request().postData());
     calls.push({ model, key: r.request().headers()['x-goog-api-key'], keyInUrl: url.includes('key='), prompt: body.contents[0].parts[0].text });
     if (gemini === 'hang') return; // la richiesta resta appesa: deve scattare il tempo massimo
-    if (gemini === 'quota' || model === 'gemini-flash-latest') return r.fulfill({ status: 429, json: { error: { status: 'RESOURCE_EXHAUSTED', message: 'Quota exceeded' } } });
+    if (gemini === 'quota' || model === 'gemini-3.5-flash') return r.fulfill({ status: 429, json: { error: { status: 'RESOURCE_EXHAUSTED', message: 'Quota exceeded' } } });
     if (model === 'gemini-flash-lite-latest') return r.fulfill({ status: 503, json: { error: { status: 'UNAVAILABLE', message: 'high demand' } } });
-    const original = body.contents[0].parts[0].text.split('Titolo originale: ')[1];
+    const original = body.contents[0].parts[0].text.split('Titolo originale: ').pop();
     calls[calls.length - 1].schema = body.generationConfig.responseSchema;
+    calls[calls.length - 1].thinking = body.generationConfig.thinkingConfig;
     const [leggero, medio, forte] = original.startsWith('Il campione') ? AI_TITLES : ['Alt A per ' + original, 'Alt B', 'Alt C'];
     return r.fulfill({ json: { candidates: [{ content: { parts: [{ thought: true, text: 'ragionamento interno' }, { text: JSON.stringify({ leggero, medio, forte }) }] } }] } });
   });
@@ -120,11 +121,14 @@ const browser = await chromium.launch();
   const texts = await aiChoices(page).allTextContents();
   check('Quattro scelte: titolo del sito + 3 AI', texts.length === 4 && texts[0].includes(FEED.items[0].title) && texts[1].includes(AI_TITLES[0]), JSON.stringify(texts));
   check('Limite d’uso e sovraccarico: passa al modello successivo',
-    JSON.stringify(calls.map(c => c.model)) === JSON.stringify(['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash']), calls.map(c => c.model).join(' → '));
+    JSON.stringify(calls.map(c => c.model)) === JSON.stringify(['gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-3.5-flash-lite']), calls.map(c => c.model).join(' → '));
   check('Gemini: chiave nell’header e non nell’URL', calls.every(c => c.key === 'test-key' && !c.keyInUrl));
-  check('Gemini: prompt vieta fatti inventati', /non aggiungere fatti/.test(calls[0].prompt));
-  check('Gemini: prompt chiede curiosity gap in scala leggero → medio → forte con tecniche diverse',
-    /curiosity gap/.test(calls[0].prompt) && /leggero:.*\n- medio:.*\n- forte:/s.test(calls[0].prompt) && /tecnica diversa/.test(calls[0].prompt));
+  check('Gemini: prompt vieta fatti inventati', /Vietato aggiungere fatti/.test(calls[0].prompt));
+  check('Gemini: prompt chiede curiosity gap in scala leggero → medio → forte, strutture diverse, una sola domanda',
+    /curiosity gap/.test(calls[0].prompt) && /leggero:.*\n- medio:.*\n- forte:/s.test(calls[0].prompt)
+    && /struttura e un attacco diversi/.test(calls[0].prompt) && /Al massimo uno dei tre può essere una domanda/.test(calls[0].prompt));
+  check('Gemini: la curiosità nasce togliendo, non aggiungendo', /non aggiungere niente, togli/.test(calls[0].prompt));
+  check('Gemini: ragionamento ridotto per risposte rapide', calls[calls.length - 1].thinking?.thinkingLevel === 'low');
   const schema = calls[calls.length - 1].schema;
   check('Gemini: risposta strutturata con un campo per livello', JSON.stringify(schema.required) === '["leggero","medio","forte"]'
     && JSON.stringify(schema.propertyOrdering) === '["leggero","medio","forte"]');
