@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "StoryFlow SaaS – Meta Story Link Auto-Publisher",
+  "version": "2.6.2",
+  "description": "StoryFlow Stable: motore di pubblicazione verificato 2.5.2, interfaccia essenziale e diagnostica.",
+  "permissions": [
+    "debugger",
+    "storage",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://business.facebook.com/*",
+    "http://localhost/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost/*",
+        "https://*/*"
+      ],
+      "exclude_matches": [
+        "https://business.facebook.com/*"
+      ],
+      "js": [
+        "saas-bridge.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://business.facebook.com/latest/story_composer/*"
+      ],
+      "js": [
+        "file-picker-hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://business.facebook.com/latest/story_composer/*"
+      ],
+      "js": [
+        "composer.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_title": "Connetti StoryFlow alla dashboard aperta"
+  }
+}

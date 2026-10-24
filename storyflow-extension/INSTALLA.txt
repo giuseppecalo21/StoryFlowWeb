@@ -1,0 +1,10 @@
+StoryFlow Stable 2.6.2
+
+1. Vai su chrome://extensions e attiva Modalità sviluppatore.
+2. Disattiva eventuali altre estensioni StoryFlow.
+3. Carica la cartella storyflow-extension tramite Carica estensione non pacchettizzata.
+4. Torna nella dashboard e premi Ctrl+Shift+R.
+5. Verifica «Estensione collegata · 2.6.2».
+6. Prova una sola storia in modalità Test.
+
+IMPORTANTE: la scheda di lavoro è intenzionalmente in primo piano: non spostarla né chiuderla durante l'operazione. L'interfaccia Meta è coperta da un riepilogo StoryFlow che non blocca i clic.

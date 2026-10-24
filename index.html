@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>StoryFlow Studio – Editor di storie</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="ui.css?v=3.0.0">
+</head>
+<body data-mobile-tab="news">
+
+<header>
+  <div class="brand">
+    <span class="brand-mark">SF</span><span class="brand-name">StoryFlow <small>STUDIO</small></span>
+  </div>
+  <div class="top-bar">
+    <label class="site-label" for="siteUrl">Sito o blog</label>
+    <input type="url" id="siteUrl" value="https://wordpress.org/news" placeholder="https://tuosito.it">
+    <button class="primary" id="btnFetch">Carica notizie</button>
+    <button class="secondary" id="btnSettings">Impostazioni sito</button>
+    <button class="secondary" id="btnMetaLogin" hidden>🔑 Account Meta</button>
+    <button class="secondary" id="btnExtension">Estensione Chrome</button>
+    <span id="extStatus" class="badge-ext">Verifica motore...</span>
+  </div>
+</header>
+
+<nav class="subnav" aria-label="Navigazione studio">
+  <span class="subnav-current">Studio editor</span>
+  <span>Gestione storie / Editor 1080 × 1920</span>
+  <span class="version-tag">VERSIONE 3.0 MOBILE & CLOUD</span>
+</nav>
+
+<section class="overview">
+  <div class="overview-heading">
+    <div>
+      <p class="eyebrow">STORYFLOW / WORKSPACE</p>
+      <h1>Story studio</h1>
+      <p class="overview-sub">Prepara, personalizza e pubblica storie dai tuoi articoli.</p>
+    </div>
+    <div class="summary-pills">
+      <div><span>Articoli</span><strong id="statNews">0</strong></div>
+      <div><span>In coda</span><strong id="statQueue">0</strong></div>
+      <div><span>Stato</span><strong id="statStatus">In attesa</strong></div>
+    </div>
+  </div>
+</section>
+
+<div class="workspace">
+  <!-- COLONNA 1: ARTICOLI DAL SITO -->
+  <div class="col col-news">
+    <div class="col-header">
+      <span>ARTICOLI DAL SITO</span>
+      <span id="newsCount">0 articoli</span>
+    </div>
+    <p id="feedSource" class="feed-source" aria-live="polite">Fonte: rilevamento automatico REST / RSS</p>
+    <div class="col-body" id="newsList">
+      <p style="color:var(--muted);font-size:13px;">Clicca su "Carica notizie" per estrarre gli ultimi articoli disponibili tramite WordPress REST o RSS.</p>
+    </div>
+  </div>
+
+  <!-- COLONNA 2: STUDIO INTERATTIVO 1080x1920 -->
+  <div class="studio-area col-studio">
+    <div class="stage-heading"><span>ANTEPRIMA STORIA</span><small>1080 × 1920 · 9:16</small></div>
+    <div class="canvas-wrap" id="canvasWrap" title="Trascina per spostare la foto, usa due dita o la rotellina per lo zoom">
+      <canvas id="storyCanvas" width="1080" height="1920"></canvas>
+    </div>
+    <div class="canvas-hint">
+      👆 <b>Trascina la foto</b> col dito o mouse per inquadrarla • <b>Pizzica con 2 dita</b> o usa la rotellina per lo Zoom
+    </div>
+  </div>
+
+  <!-- COLONNA 3: EDITOR & CODA DI PUBBLICAZIONE -->
+  <div class="col col-editor" style="border-right:none;">
+    <div class="col-header">
+      <span>EDITOR E PUBBLICAZIONE</span>
+    </div>
+    <div class="col-body">
+      <p class="studio-intro">Seleziona una notizia, personalizza testo e grafica, poi aggiungila alla coda.</p>
+
+      <div class="control-group">
+        <label>
+          <span>Titolo nella Storia</span>
+          <button type="button" id="btnAiRewrite" style="padding:2px 8px;font-size:11px;background:#4f46e5;border:none;color:#fff;">Riscrivi con AI</button>
+        </label>
+        <textarea id="inpTitle" placeholder="Seleziona una notizia..."></textarea>
+        <label for="cfgStickerText" style="margin-top:12px;">Testo adesivo link (pulsante cliccabile)</label>
+        <input type="text" id="cfgStickerText" maxlength="70" value="WORDPRESS.ORG" placeholder="Nome del sito" style="width:100%;">
+        <label for="cfgCtaText" style="margin-top:10px;">Testo barra invito all'azione</label>
+        <input type="text" id="cfgCtaText" maxlength="65" value="LEGGI L'ARTICOLO SU" style="width:100%;">
+        <div class="inline-tools">
+          <button type="button" class="secondary" id="btnRestoreTexts">↩ Titolo e testi originali</button>
+        </div>
+      </div>
+
+      <button type="button" class="editor-toggle expanded" id="btnToggleEditor" aria-expanded="true" aria-controls="advancedEditor">
+        <span><strong>Personalizza grafica</strong><small>Font, colori, pattern, sfondo, watermark e inquadratura</small></span>
+        <span class="editor-chevron" aria-hidden="true">⌄</span>
+      </button>
+
+      <div id="advancedEditor" class="advanced-editor">
+        <div class="control-group compact-editor-controls">
+          <label><span>Tipografia e posizione</span></label>
+          <div class="row-2" style="margin-top:8px;">
+            <div>
+              <label>Dimensione Font <span id="lblFontSize">58px</span></label>
+              <input type="range" id="rngFontSize" min="36" max="82" value="58">
+            </div>
+            <div>
+              <label>Altezza Testo Y <span id="lblTextY">0</span></label>
+              <input type="range" id="rngTextY" min="-120" max="120" value="0">
+            </div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label><span>Stile grafico</span><span id="saveStatus" class="save-hint">Salvataggio locale</span></label>
+          <div class="row-2">
+            <div><label for="cfgColor">Colore del brand</label><input type="color" id="cfgColor" value="#e61928" class="color-control"></div>
+            <div><label for="cfgDarkColor">Colore aree scure</label><input type="color" id="cfgDarkColor" value="#181818" class="color-control"></div>
+          </div>
+          <label for="cfgPattern" style="margin-top:12px;">Pattern di sfondo <span id="patternCount">24 stili</span></label>
+          <select id="cfgPattern" style="width:100%;"></select>
+          <div id="patternGrid" class="pattern-grid" aria-label="Galleria pattern"></div>
+
+          <div class="background-editor">
+            <div class="background-top"><strong>Immagine di sfondo</strong><span>Alternativa al colore scuro</span></div>
+            <label class="check-row"><input type="checkbox" id="cfgBackgroundEnabled"> Usa sfondo personalizzato</label>
+            <input type="file" id="cfgBackgroundFile" accept="image/png,image/jpeg,image/webp" style="width:100%;margin:8px 0;">
+            <div class="background-preview-line">
+              <img id="backgroundPreview" alt="Anteprima sfondo" hidden>
+              <span id="backgroundInfo">Nessuna immagine caricata</span>
+              <button type="button" class="secondary" id="btnRemoveBackground">Rimuovi</button>
+            </div>
+            <div class="row-2" style="margin-top:12px;">
+              <div><label for="cfgBackgroundTint">Velatura scura <span id="lblBackgroundTint">55%</span></label><input type="range" id="cfgBackgroundTint" min="0" max="95" value="55"></div>
+              <div>
+                <label for="cfgBackgroundPosition">Inquadratura</label>
+                <select id="cfgBackgroundPosition" style="width:100%;">
+                  <option value="center">Centro</option><option value="top">Alto</option><option value="bottom">Basso</option><option value="left">Sinistra</option><option value="right">Destra</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="row-2" style="margin-top:10px;">
+            <div><label for="cfgTitleFont">Font del titolo</label><select id="cfgTitleFont" style="width:100%;"></select></div>
+            <div><label for="cfgCtaFont">Font della barra CTA</label><select id="cfgCtaFont" style="width:100%;"></select></div>
+          </div>
+          <div class="row-2" style="margin-top:8px;">
+            <div><label for="cfgTitleWeight">Peso del titolo</label><select id="cfgTitleWeight" style="width:100%;"></select></div>
+            <div><label for="cfgCtaWeight">Peso della CTA</label><select id="cfgCtaWeight" style="width:100%;"></select></div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label><span>Logo / watermark</span><span>Per il sito corrente</span></label>
+          <label class="check-row"><input id="cfgWatermarkEnabled" type="checkbox"> Mostra logo sulla storia</label>
+          <input type="file" id="cfgLogoFile" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="width:100%;margin:7px 0;">
+          <div class="logo-line">
+            <img id="logoPreview" alt="Anteprima logo" hidden>
+            <span id="logoInfo">Nessun logo caricato</span>
+            <button type="button" id="btnRemoveLogo" class="secondary">Rimuovi</button>
+          </div>
+          <div class="row-2" style="margin-top:10px;">
+            <div><label for="cfgWatermarkOpacity">Opacità <span id="lblWatermarkOpacity">35%</span></label><input type="range" id="cfgWatermarkOpacity" min="10" max="100" value="35"></div>
+            <div><label for="cfgWatermarkSize">Dimensione <span id="lblWatermarkSize">180 px</span></label><input type="range" id="cfgWatermarkSize" min="80" max="360" value="180"></div>
+          </div>
+          <label for="cfgWatermarkPosition" style="margin-top:10px;">Posizione</label>
+          <select id="cfgWatermarkPosition" style="width:100%;">
+            <option value="top-right">In alto a destra</option>
+            <option value="top-left">In alto a sinistra</option>
+            <option value="photo-right">Sulla foto, in basso a destra</option>
+            <option value="photo-left">Sulla foto, in basso a sinistra</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>
+            <span>Inquadratura Foto</span>
+            <button type="button" id="btnResetPhoto" style="padding:2px 6px;font-size:11px;">Centra Foto</button>
+          </label>
+          <div class="row-2">
+            <div>
+              <label>Zoom Foto <span id="lblZoom">100%</span></label>
+              <input type="range" id="rngZoom" min="50" max="250" value="100">
+            </div>
+            <div>
+              <label>Mostra Guida Sticker</label>
+              <input type="checkbox" id="chkGuide" checked style="width:18px;height:18px;margin-top:4px;">
+            </div>
+          </div>
+        </div>
+
+        <div class="control-group preset-actions">
+          <button type="button" class="primary" id="btnSaveDefaultsVisible">💾 Imposta stile predefinito</button>
+          <button type="button" class="secondary" id="btnResetStoryVisible">↩ Ripristina storia</button>
+        </div>
+      </div>
+
+      <div class="control-group" id="boxSettings" style="display:none;">
+        <label><span>Configurazione Brand & Canali</span></label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+          <label for="cfgMetaTarget">Pagina/profili collegati (testo da verificare)</label>
+          <input type="text" id="cfgMetaTarget" value="Zona Wrestling e zona_wrestling" placeholder="Nome canali collegati">
+          <label for="cfgGeminiKey">Gemini API Key</label>
+          <input type="password" id="cfgGeminiKey" placeholder="AIzaSy..." autocomplete="off">
+          <button type="button" id="btnSaveDefaults" class="primary">💾 Salva stile predefinito</button>
+          <button type="button" id="btnResetStory" class="secondary">↩ Ripristina storia</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="primary" id="btnAddQueue" style="flex:1;padding:12px;">➕ Aggiungi Storia in Coda</button>
+        <button class="secondary" id="btnDownload" title="Scarica JPG">💾</button>
+      </div>
+
+      <div class="control-group">
+        <label>
+          <span>3. Coda Pronta (<b id="queueCount">0</b>)</span>
+          <button type="button" id="btnClearQueue" style="padding:2px 6px;font-size:11px;">Svuota</button>
+        </label>
+        <div class="queue-list" id="queueList">
+          <p class="small-note">Modifica una o più storie e clicca su "Aggiungi in Coda".</p>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="success" id="btnPublishQueue" disabled style="flex:1;padding:12px;font-size:13.5px;">Pubblica storie</button>
+          <button class="secondary" id="btnTestQueue" disabled>🧪 Test</button>
+        </div>
+        <button type="button" id="btnLastReport" class="secondary" style="margin-top:8px;font-size:11px;width:100%;text-align:left">Visualizza l’ultimo report di pubblicazione ↗</button>
+        <div id="extensionGate" class="extension-gate" role="status">
+          <span class="gate-indicator" aria-hidden="true"></span>
+          <div>
+            <strong>Motore di pubblicazione non collegato</strong>
+            <p>Usa l'App Mobile StoryFlow (che integra già il motore automatico) oppure attiva l'estensione Chrome da PC.</p>
+          </div>
+          <button type="button" id="btnRecheckExtension" class="secondary">Rileva</button>
+          <button type="button" id="btnOpenExtensionGate" class="secondary">Info</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BARRA DI NAVIGAZIONE MOBILE A 3 TAB -->
+<nav class="mobile-tabbar" aria-label="Navigazione Mobile">
+  <button type="button" class="mobile-tab-btn active" data-tab="news">
+    <span>📰</span><small>Notizie</small>
+  </button>
+  <button type="button" class="mobile-tab-btn" data-tab="studio">
+    <span>🎨</span><small>Anteprima</small>
+  </button>
+  <button type="button" class="mobile-tab-btn" data-tab="editor">
+    <span>🚀</span><small>Editor & Coda (<b id="mobQueueBadge">0</b>)</small>
+  </button>
+</nav>
+
+<div class="modal-backdrop progress-modal" id="publishModal" hidden>
+  <div class="publish-dialog" role="dialog" aria-modal="true" aria-labelledby="publishTitle">
+    <div class="publish-top">
+      <span class="publish-icon">SF</span>
+      <span class="publish-kicker">STORYFLOW / CENTRO PUBBLICAZIONI</span>
+      <button type="button" id="btnCloseProgress" title="Chiudi pannello">×</button>
+    </div>
+    <h2 id="publishTitle">Preparazione della pubblicazione</h2>
+    <p id="publishSub">Elaborazione automatica in corso.</p>
+    <div class="progress-track"><div id="progressFill" style="width:0%"></div></div>
+    <div class="progress-meta"><span id="progressCount">Storia 1 di 1</span><span id="progressPct">0%</span></div>
+    <ol class="progress-steps" id="progressSteps">
+      <li data-stage="start">Preparazione</li>
+      <li data-stage="image">Elaborazione</li>
+      <li data-stage="link">Collegamenti</li>
+      <li data-stage="publish">Completamento</li>
+    </ol>
+    <div class="progress-last" id="progressLast" aria-live="polite">Preparazione…</div>
+
+    <div id="publishOutcome" class="publish-outcome" hidden>
+      <div class="publish-outcome-text">
+        <strong id="publishOutcomeTitle">Esito positivo</strong>
+        <span id="publishOutcomeDesc">Operazione conclusa correttamente.</span>
+      </div>
+      <button type="button" id="btnOutcomeDone" class="primary" style="padding:8px 14px;">Chiudi</button>
+    </div>
+
+    <section id="publishDiagnosis" class="publish-diagnosis" hidden>
+      <div class="publish-diagnosis-head"><strong>Dettagli tecnici</strong><button type="button" id="btnCopyError">Copia rapporto</button></div>
+      <p id="publishFailureStage" class="publish-diagnosis-stage">Fase non disponibile</p>
+      <pre id="publishFailureMessage" class="publish-diagnosis-message"></pre>
+      <details><summary>Mostra registro tecnico</summary><pre id="publishTechnicalLog"></pre></details>
+    </section>
+    <p class="progress-footnote">La lavorazione viene eseguita nel browser desktop integrato dell'app.</p>
+    <button type="button" id="btnRevealWork" class="secondary" hidden>Mostra finestra di lavoro Meta</button>
+  </div>
+</div>
+
+<div id="extensionModal" class="modal-backdrop" hidden>
+  <div class="install-dialog" role="dialog" aria-modal="true">
+    <div class="install-header"><h2>Motore di Pubblicazione</h2><button type="button" id="btnCloseExtension">✕</button></div>
+    <p>Nell'<strong>App Android/iOS StoryFlow</strong> il motore è già integrato: premi semplicemente su <strong>🔑 Account Meta</strong> in alto per accedere a Facebook Business Suite la prima volta.</p>
+    <p style="margin-top:10px;">Se invece stai usando un PC desktop con Chrome, puoi scaricare e collegare l'estensione Chrome:</p>
+    <a class="download-extension" href="storyflow-extension.zip" download="storyflow-extension.zip">⬇️ Scarica estensione Chrome (.zip)</a>
+  </div>
+</div>
+
+<script src="studio.js?v=3.0.0" defer></script>
+</body>
+</html>
