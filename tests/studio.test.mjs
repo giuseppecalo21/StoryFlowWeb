@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const shots = process.argv[2] || '';
-const TYPES = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css' };
+const TYPES = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png' };
 
 const server = createServer((req, res) => {
   const path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
@@ -41,22 +41,32 @@ const check = (name, cond, detail = '') => { console.log(`${cond ? 'OK  ' : 'FAI
  * gemini: 'fallback' (primo modello al limite d'uso, secondo sovraccarico, terzo risponde),
  *         'hang' (nessuna risposta), 'quota' (tutti al limite d'uso).
  */
-async function openStudio(browser, { desktop = false, viewport = { width: 1440, height: 900 }, gemini = 'fallback', presetKey = '' } = {}) {
+async function openStudio(browser, { desktop = false, viewport = { width: 1440, height: 900 }, gemini = 'fallback', presetKey = '', onboarding = false } = {}) {
   const page = await browser.newPage({ viewport });
   const errors = [];
   const calls = [];
   page.on('pageerror', e => errors.push(e.message));
-  await page.addInitScript(([key, fast]) => {
+  await page.addInitScript(([key, fast, showOnboarding]) => {
+    // La guida iniziale si apre solo al primo avvio: le altre prove partono come utenti già configurati.
+    if (!showOnboarding && !sessionStorage.getItem('sf-test-init')) localStorage.setItem('storyflow.onboarding.v1', 'done');
+    sessionStorage.setItem('sf-test-init', '1');
     if (key) localStorage.setItem('storyflow.studio.ai.v1', JSON.stringify({ key, model: '' }));
     if (fast) { window.__SF_AI_TIMEOUT_MS = 700; window.__SF_AI_TOTAL_MS = 6000; }
-  }, [presetKey, gemini === 'hang']);
+  }, [presetKey, gemini === 'hang', onboarding]);
   if (desktop) {
     await page.addInitScript(() => {
       window.__started = null;
       window.StoryFlowNative = {
         getPlatform: () => 'desktop', startQueue: json => { window.__started = JSON.parse(json); },
         isQueueRunning: () => false, openMetaLogin: () => {}, getLastReport: () => '{"available":false}',
-        getEngineInfo: () => '{"version":"4.0.0","source":"integrato"}'
+        getEngineInfo: () => '{"version":"4.0.0","source":"integrato"}',
+        // Onboarding: nella pagina di Meta l'utente clicca su "La Mia Pagina"; Meta la scrive con la P maiuscola.
+        pickMetaTarget: () => new Promise(r => setTimeout(() => r({ ok: true, reason: '', text: 'La Mia Pagina', suggestion: '' }), 300)),
+        verifyMetaTarget: text => Promise.resolve(text === 'La Mia Pagina'
+          ? { ok: true, reason: '', text, suggestion: '' }
+          : { ok: false, reason: 'notfound', text, suggestion: text.toLowerCase() === 'la mia pagina' ? 'La Mia Pagina' : '' }),
+        openMetaComposer: () => { window.__composerOpened = true; },
+        cancelMetaSetup: () => {}
       };
     });
   }
@@ -206,19 +216,99 @@ const browser = await chromium.launch();
   await page.waitForSelector('.news-card');
   await page.locator('.news-card').nth(0).locator('.quick-queue').click();
   await page.waitForFunction(() => document.getElementById('queueCount').textContent === '1');
-  page.once('dialog', d => d.accept());
   await page.click('#btnTestQueue');
   check('Senza nome canale la pubblicazione non parte', await page.evaluate(() => window.__started === null));
-  await page.fill('#cfgMetaTarget', 'La Mia Pagina');
+  check('Senza nome canale si apre la guida su “Dove pubblichiamo”', await page.locator('#onboardingModal').isVisible()
+    && (await page.locator('#obCount').textContent()) === '4 di 4' && await page.locator('#obPickBox').isVisible());
+  // Verifica con una maiuscola sbagliata: si propone il testo esatto che mostra Meta.
+  await page.fill('#obMetaTarget', 'La mia pagina');
+  await page.click('#btnObVerify');
+  await page.waitForSelector('#obTargetResult.err button');
+  check('Verifica: maiuscola sbagliata → proposta del nome esatto', (await page.locator('#obTargetResult button').textContent()) === 'Usa «La Mia Pagina»');
+  await page.click('#obTargetResult button');
+  check('Proposta accettata: nome corretto salvato', (await page.inputValue('#obMetaTarget')) === 'La Mia Pagina'
+    && (await page.inputValue('#cfgMetaTarget')) === 'La Mia Pagina');
+  await page.fill('#obMetaTarget', '');
+  await page.click('#btnObPick');
+  await page.waitForSelector('#obTargetResult.ok');
+  check('“Trova il nome in Meta” compila il nome scelto nella pagina', (await page.inputValue('#obMetaTarget')) === 'La Mia Pagina'
+    && (await page.locator('#obTargetResult').textContent()).includes('Pubblicheremo su «La Mia Pagina»'));
+  await page.click('#btnObVerify');
+  await page.waitForSelector('#obTargetResult.ok >> text=Trovato');
+  check('Verifica riuscita', true);
+  await page.click('#obManual summary');
+  await page.click('#obManual a');
+  check('Nell’app il link alla pagina delle storie si apre nella vista Meta', await page.evaluate(() => window.__composerOpened === true));
+  if (shots) await page.screenshot({ path: join(shots, 'onboarding-desktop-pagina.png') });
+  await page.click('#btnObNext');
+  check('“Fatto” chiude la guida', await page.locator('#onboardingModal').isHidden());
   await page.click('#btnTestQueue');
   const started = await page.evaluate(() => window.__started);
   check('Avvio coda verso l’app desktop con nome canale compilato', started?.dryRun === true && started.items[0].metaTarget === 'La Mia Pagina'
     && started.items[0].dataUrl.startsWith('data:image/jpeg'));
+  // Il motore non trova il nome della pagina in Meta: messaggio chiaro e pulsante per correggerlo.
+  await page.evaluate(() => window.__onStoryFlowNativeProgress({ stage: 'error', index: 1, total: 1,
+    message: 'Coda conclusa: 0 pubblicate, 1 non riuscite (Canale "La Mia Pagina" non trovato. Verifica l\'accesso in Account Meta.)', log: [] }));
+  check('Canale non trovato: spiegazione chiara', (await page.locator('#publishOutcomeDesc').textContent()).includes('Non troviamo «La Mia Pagina» nella pagina delle storie'));
+  check('Canale non trovato: pulsante per sistemare il nome', await page.locator('#btnFixChannel').isVisible());
+  if (shots) await page.screenshot({ path: join(shots, 'errore-canale.png') });
+  await page.click('#btnFixChannel');
+  check('Il pulsante riapre la guida su “Dove pubblichiamo”', await page.locator('#onboardingModal').isVisible() && (await page.locator('#obCount').textContent()) === '4 di 4');
+  await page.click('#btnObClose');
   check('Nessun errore JavaScript (desktop)', errors.length === 0, errors.join(' | '));
   await page.close();
 }
 {
-  const { page, errors } = await openStudio(browser, { viewport: { width: 390, height: 844 } });
+  // Primo avvio nel browser: la guida parte da sola e accompagna nei quattro passaggi.
+  const { page, errors } = await openStudio(browser, { onboarding: true });
+  check('Primo avvio: si apre la guida', await page.locator('#onboardingModal').isVisible() && (await page.locator('#obCount').textContent()) === '1 di 4');
+  if (shots) await page.screenshot({ path: join(shots, 'onboarding-1-sito.png') });
+  await page.fill('#obSite', 'sito senza https');
+  await page.click('#btnObNext');
+  check('Passo 1: indirizzo non valido segnalato', (await page.locator('#obCount').textContent()) === '1 di 4'
+    && (await page.locator('#obSiteFeedback').textContent()).includes('indirizzo completo'));
+  await page.fill('#obSite', 'https://example.com');
+  await page.click('#btnObFetch');
+  await page.waitForSelector('#obSiteFeedback.ok');
+  check('Passo 1: “Prova” trova gli articoli', (await page.locator('#obSiteFeedback').textContent()).includes('Trovati 3 articoli')
+    && (await page.inputValue('#siteUrl')) === 'https://example.com');
+  await page.click('#btnObNext');
+  check('Passo 2: colori con anteprima', await page.locator('#obPreview').isVisible());
+  await page.locator('#obColor').evaluate(el => { el.value = '#e63946'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  check('Passo 2: il colore scelto diventa lo stile predefinito del sito', await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('storyflow.studio.settings.v2.2')).sites['https://example.com'].defaults.brandColor === '#e63946'));
+  if (shots) await page.screenshot({ path: join(shots, 'onboarding-2-colori.png') });
+  await page.click('#btnObNext');
+  check('Passo 3: rassicurazione su nome utente e password', (await page.locator('.ob-safe').textContent()).includes('non vede e non salva né il nome utente né la password'));
+  await page.click('.ob-step[data-step="2"] summary');
+  if (shots) await page.screenshot({ path: join(shots, 'onboarding-3-meta.png') });
+  await page.click('#btnObNext');
+  check('Passo 4 senza app: niente selettore automatico, guida manuale aperta', await page.locator('#obPickBox').isHidden()
+    && await page.locator('#btnObVerify').isHidden() && await page.locator('#obManual').evaluate(d => d.open));
+  check('Passo 4: illustrazione della pagina di Meta', await page.locator('#obGuideImage').evaluate(img => img.complete && img.naturalWidth > 0));
+  if (shots) await page.screenshot({ path: join(shots, 'onboarding-4-pagina.png'), fullPage: true });
+  await page.click('#btnObNext');
+  check('Senza nome: avviso prima di chiudere', await page.locator('#onboardingModal').isVisible()
+    && (await page.locator('#obTargetResult').textContent()).includes('Senza il nome della pagina'));
+  await page.locator('#obMetaTarget').pressSequentially('Pagina di Prova');
+  check('Il nome si scrive normalmente, spazi compresi', (await page.inputValue('#obMetaTarget')) === 'Pagina di Prova');
+  check('Il nome scritto a mano finisce nelle impostazioni del sito', (await page.inputValue('#cfgMetaTarget')) === 'Pagina di Prova');
+  await page.click('#btnObNext');
+  check('Guida chiusa', await page.locator('#onboardingModal').isHidden());
+  await page.reload();
+  await page.waitForTimeout(300);
+  check('Dopo il primo avvio la guida non si riapre da sola', await page.locator('#onboardingModal').isHidden());
+  await page.click('#btnGuide');
+  check('“Guida” la riapre dall’inizio', await page.locator('#onboardingModal').isVisible() && (await page.locator('#obCount').textContent()) === '1 di 4');
+  await page.click('#btnObClose');
+  check('Nessun errore JavaScript (onboarding)', errors.length === 0, errors.join(' | '));
+  await page.close();
+}
+{
+  const { page, errors } = await openStudio(browser, { viewport: { width: 390, height: 844 }, onboarding: true });
+  check('Mobile: guida a schermo intero', await page.locator('#onboardingModal').isVisible());
+  if (shots) await page.screenshot({ path: join(shots, 'onboarding-mobile.png') });
+  await page.click('#btnObClose');
   await page.click('#btnFetch');
   await page.waitForSelector('.news-card');
   check('Mobile: pulsante coda rapida visibile', await page.locator('.news-card .quick-queue').first().isVisible());

@@ -2,17 +2,11 @@
 
 ## Prossima release
 
-### Onboarding a schede (2-3 passaggi + verifica del canale)
-Al primo avvio, un carosello con testi semplici e simpatici che accompagna l'utente passo per passo:
-1. **Il tuo sito**: inserisci l'indirizzo del sito o del blog da cui prendere le notizie.
-2. **I tuoi colori**: scegli colori e stile della grafica (con anteprima).
-3. **Accesso a Meta**: login a Meta Business Suite nella finestra dell'app. Rassicurare: l'accesso resta sul suo dispositivo, StoryFlow non vede né salva nome utente e password.
-4. **Dove pubblichiamo** (il passaggio fondamentale): l'utente deve copiare **esattamente** il testo che Meta Business Suite mostra per indicare le sue pagine/profili (lo stesso che il motore cerca nella pagina prima di pubblicare). Spiegare dove trovarlo, passo per passo e con immagini. Senza questo testo non sappiamo su quale pagina stiamo pubblicando.
-   - Chi non ha un account Meta Business: spiegare che è gratuito, come crearlo e che deve **aggiungerci le sue pagine Facebook e i profili Instagram**, altrimenti non funziona nulla.
-   - Prima di scrivere la guida, ricontrollare su Meta i passaggi e i nomi attuali dei menu (Meta li cambia spesso).
-
-### Messaggi d'errore sul canale
-Quando il motore non trova le pagine in Meta Business Suite ("Canale … non trovato"), spiegare chiaramente cosa significa e cosa fare: il testo inserito deve corrispondere esattamente a quello mostrato da Meta, e la pagina deve essere collegata all'account Meta Business. Con un pulsante che riapre il passaggio "Dove pubblichiamo" dell'onboarding.
+### Onboarding: prova reale su Meta
+La guida in 4 passaggi e la scelta del nome della pagina sono pronte (vedi README). Prima di distribuirle:
+- provare **"Trova il nome in Meta"** e **"Verifica"** con un account vero, nell'app desktop e su Android (la parte Kotlin non è stata compilata qui);
+- salvare uno screenshot vero della pagina delle storie come `onboarding/dove-pubblichiamo.png` (il pannello lo usa al posto dell'illustrazione);
+- ricontrollare i nomi dei menu citati nella guida per chi non ha Meta Business Suite ("Impostazioni", "Pagine", "Account Instagram"): Meta li cambia spesso.
 
 ### Pulsante "Resetta tutto e ricomincia"
 Dopo un errore: azzera coda, stato della pubblicazione e registro, riporta l'app al pannello e permette di riprovare da zero senza chiudere e riaprire.
