@@ -558,7 +558,7 @@
 
   wrap.addEventListener('touchend',()=>{isDragging=false;pinchStartDist=0;saveCurrentStory();});
 
-  function selectArticle(it,cardEl,autoSwitchTab=false) {
+  function selectArticle(it,cardEl,autoSwitchTab=false,{withAiTitles=true}={}) {
     articleToken++;const token=articleToken;
     document.querySelectorAll('.news-card').forEach(c=>c.classList.remove('active'));
     cardEl?.classList.add('active');currentArticle=it;
@@ -567,7 +567,8 @@
     inpTitle.value=override && typeof override.title==='string'?override.title:it.title;
     const ps=override?.photoState;
     photoState=ps?{panX:Number(ps.panX)||0,panY:Number(ps.panY)||0,zoom:clamp(Number(ps.zoom)||1,.5,2.5)}:{panX:0,panY:0,zoom:1};
-    loadedImg=null;syncUI();renderTitleChoices();
+    loadedImg=null;syncUI();
+    if(withAiTitles)scheduleAiTitles();else renderTitleChoices();
     if(it.image) {
       photoPromise=new Promise(resolve=>{
         const img=new Image();img.crossOrigin='anonymous';
@@ -616,90 +617,222 @@
   });
 
   // --- TITOLI ALTERNATIVI CON AI (3 proposte + titolo originale del sito) ---
+  // Compaiono da soli sotto il titolo quando si seleziona una notizia; senza chiave la sezione resta
+  // sfocata con l'invito a sbloccarla. Se un modello Gemini è al limite d'uso o sovraccarico si passa
+  // al successivo: i limiti gratuiti di Google valgono per singolo modello.
   // Il fornitore è isolato in requestAiTitles(): per passare a un altro servizio basta cambiare quella funzione.
-  const AI_MODELS=['gemini-flash-latest','gemini-3.5-flash','gemini-2.5-flash'];
-  const aiTitles=new Map();
-  let aiSettings={key:'',model:''};
+  const GEMINI_API='https://generativelanguage.googleapis.com/v1beta/models';
+  const AI_MODELS=['gemini-flash-latest','gemini-flash-lite-latest','gemini-2.5-flash','gemini-2.5-flash-lite'];
+  const AI_TIMEOUT_MS=Number(window.__SF_AI_TIMEOUT_MS)||25000;
+  const AI_TOTAL_MS=Number(window.__SF_AI_TOTAL_MS)||50000;
+  const AI_MAX_ATTEMPTS=6;
+  const AI_CACHE_KEY='storyflow.studio.aititles.v2';
+  const AI_KEY_URL='https://aistudio.google.com/apikey';
+  const aiState=new Map();
+  let aiSettings={key:'',model:''}, aiCache={}, listedModels=null, aiTimer=null;
   try {
     const saved=JSON.parse(localStorage.getItem(AI_STORE_KEY)||'{}');
     aiSettings={key:String(saved.key||''),model:String(saved.model||'')};
   } catch(_) {}
+  try { const c=JSON.parse(localStorage.getItem(AI_CACHE_KEY)||'{}'); if(c && typeof c==='object')aiCache=c; } catch(_) {}
   cfgGeminiKey.value=aiSettings.key;cfgAiModel.value=aiSettings.model;
   const saveAiSettings=()=>{
+    const keyChanged=aiSettings.key!==cfgGeminiKey.value.trim();
     aiSettings={key:cfgGeminiKey.value.trim(),model:cfgAiModel.value.trim()};
     try{localStorage.setItem(AI_STORE_KEY,JSON.stringify(aiSettings));}catch(_){}
+    if(keyChanged){listedModels=null;aiState.clear();}
+    scheduleAiTitles();
   };
   cfgGeminiKey.addEventListener('change',saveAiSettings);cfgAiModel.addEventListener('change',saveAiSettings);
 
+  const articleKey=a=>String(a?.url||a?.id||'');
+  function rememberTitles(key,titles) {
+    aiCache[key]={t:titles,at:Date.now()};
+    const keys=Object.keys(aiCache);
+    if(keys.length>150) keys.sort((a,b)=>aiCache[a].at-aiCache[b].at).slice(0,keys.length-150).forEach(k=>delete aiCache[k]);
+    try{localStorage.setItem(AI_CACHE_KEY,JSON.stringify(aiCache));}catch(_){}
+  }
+
+  // Tre titoli in scala di curiosità: leggero → medio → forte, ognuno con una tecnica diversa.
+  const AI_LEVELS=[['leggero','● Leggero'],['medio','●● Medio'],['forte','●●● Forte']];
   const titlePrompt=original=>[
-    'Sei il social media editor di una testata online. Partendo dal titolo qui sotto scrivi 3 titoli alternativi per una storia Instagram/Facebook con link all\'articolo.',
-    'Regole:',
-    '- Scrivi nella stessa lingua del titolo originale.',
-    '- Devono incuriosire e invogliare a toccare il link, ma restare fedeli alla notizia: non aggiungere fatti, nomi, numeri, date o citazioni che non compaiono nel titolo originale e non cambiarne il senso.',
-    '- Usa espressioni naturali e idiomatiche di quella lingua, mai calchi dall\'inglese.',
-    '- Massimo 110 caratteri ciascuno, niente hashtag, niente emoji, niente virgolette all\'inizio o alla fine.',
-    '- I 3 titoli devono avere approcci diversi tra loro (per esempio curiosità, impatto, domanda).',
+    'Sei il social media editor di una testata giornalistica online. Scrivi 3 titoli alternativi per una storia Instagram/Facebook che rimanda all\'articolo con un adesivo link.',
+    '',
+    'OBIETTIVO: creare un "curiosity gap". Il lettore deve capire di cosa si parla, ma restare con un vuoto di informazione che può colmare solo toccando il link.',
+    'I 3 titoli sono una scala di intensità crescente:',
+    '- leggero: il fatto principale è chiaro; aggiungi solo un piccolo aggancio che invoglia ad approfondire (un dettaglio, il motivo, il retroscena).',
+    '- medio: dici il tema e i protagonisti, ma trattieni l\'elemento chiave (l\'esito, la decisione, il motivo) e lo rendi desiderabile.',
+    '- forte: massima curiosità. Costruisci il titolo attorno all\'informazione mancante, con un taglio deciso, restando credibile.',
+    '',
+    'VARIETÀ: ogni titolo usa una tecnica diversa dagli altri (per esempio dettaglio inatteso, domanda, contrasto prima/dopo, conseguenza, rivelazione rimandata) e comincia in modo diverso. Non devono essere tre varianti della stessa frase.',
+    '',
+    'REGOLE GIORNALISTICHE (obbligatorie):',
+    '- Usa solo le informazioni del titolo originale: non aggiungere fatti, nomi, numeri, date, luoghi o citazioni e non cambiarne il senso.',
+    '- Puoi nascondere un\'informazione, ma non promettere mai qualcosa che la notizia non contiene e non essere fuorviante.',
+    '- Evita le formule da acchiappaclic logore: "non crederai", "incredibile", "shock", "clamoroso", "pazzesco", "ecco cosa è successo", "lascia tutti senza parole" e simili.',
+    '- Scrivi nella stessa lingua del titolo originale, con espressioni naturali e idiomatiche: mai calchi dall\'inglese.',
+    '- Massimo 110 caratteri ciascuno; niente hashtag, emoji, virgolette all\'inizio o alla fine, né maiuscolo per enfasi.',
     '',
     'Titolo originale: '+original
   ].join('\n');
 
+  // fetch con tempo massimo: una richiesta bloccata non lascia più il pannello in caricamento infinito.
+  async function fetchJson(url,options,ms) {
+    const ctrl=new AbortController(), timer=setTimeout(()=>ctrl.abort(),ms);
+    try {
+      const r=await fetch(url,{...options,signal:ctrl.signal});
+      return {status:r.status,ok:r.ok,json:await r.json().catch(()=>({}))};
+    } catch(e) {
+      return {status:0,ok:false,json:{error:{message:e.name==='AbortError'?'nessuna risposta entro il tempo massimo':e.message}}};
+    } finally { clearTimeout(timer); }
+  }
+
+  // Modelli "flash" che Google abilita per questa chiave: riserva dopo quelli predefiniti, prima i "lite".
+  async function listFlashModels(key) {
+    if(listedModels)return listedModels;
+    const r=await fetchJson(`${GEMINI_API}?pageSize=200`,{headers:{'x-goog-api-key':key}},10000);
+    listedModels=(r.ok&&Array.isArray(r.json.models)?r.json.models:[])
+      .filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent'))
+      .map(m=>String(m.name||'').replace(/^models\//,''))
+      .filter(n=>/flash/.test(n) && !/image|tts|audio|live|embedding|exp|thinking/.test(n))
+      .sort((a,b)=>Number(/lite/.test(b))-Number(/lite/.test(a)));
+    return listedModels;
+  }
+
+  function parseTitles(json,original) {
+    const raw=(json.candidates?.[0]?.content?.parts||[]).filter(p=>!p.thought).map(p=>p.text||'').join('').trim();
+    let list;
+    try {
+      const data=JSON.parse(raw);
+      list=Array.isArray(data.titles)?data.titles:AI_LEVELS.map(([k])=>data[k]).filter(Boolean);
+    } catch(_) { list=raw.split('\n'); }
+    return [...new Set((Array.isArray(list)?list:[]).map(t=>String(t).replace(/^\s*(?:\d+[.)]\s+|[-•*]\s+)/,'').replace(/^[\s"“”«»']+|[\s"“”«»']+$/g,'').trim()))]
+      .filter(t=>t && t.toLowerCase()!==original.trim().toLowerCase()).map(t=>t.slice(0,140)).slice(0,3);
+  }
+
+  const describeAiError=(status,message)=>({
+    0:'nessuna risposta',429:'limite d’uso raggiunto',404:'non disponibile',500:'errore del servizio',503:'sovraccarico',504:'nessuna risposta'
+  })[status]||(`errore HTTP ${status}`+(message?`: ${message}`:''));
+
   async function requestAiTitles(original) {
     const key=aiSettings.key;
-    if(!key) throw Error('Inserisci la chiave API Gemini in “Impostazioni sito”.');
-    const models=[...new Set([aiSettings.model,...AI_MODELS].filter(Boolean))];
-    let lastError='nessun modello disponibile';
-    for(const model of models) {
-      const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
+    if(!key) throw Error('Chiave API Gemini mancante');
+    const started=Date.now(), tried=new Set(), errors=[];
+    const queue=[...new Set([aiSettings.model,...AI_MODELS].filter(Boolean))];
+    let listedAdded=false;
+    while(tried.size<AI_MAX_ATTEMPTS && Date.now()-started<AI_TOTAL_MS) {
+      if(!queue.length) {
+        if(listedAdded)break;
+        listedAdded=true;
+        queue.push(...(await listFlashModels(key)).filter(m=>!tried.has(m)));
+        if(!queue.length)break;
+      }
+      const model=queue.shift();
+      if(tried.has(model))continue;
+      tried.add(model);
+      const r=await fetchJson(`${GEMINI_API}/${encodeURIComponent(model)}:generateContent`,{
         method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},
         body:JSON.stringify({
           contents:[{parts:[{text:titlePrompt(original)}]}],
           generationConfig:{temperature:0.9,responseMimeType:'application/json',
-            responseSchema:{type:'OBJECT',properties:{titles:{type:'ARRAY',items:{type:'STRING'}}},required:['titles']}}
+            responseSchema:{type:'OBJECT',properties:Object.fromEntries(AI_LEVELS.map(([k])=>[k,{type:'STRING'}])),
+              required:AI_LEVELS.map(([k])=>k),propertyOrdering:AI_LEVELS.map(([k])=>k)}}
         })
-      });
-      const json=await response.json().catch(()=>({}));
-      // Modello ritirato o non disponibile per questa chiave: si prova il successivo.
-      if(response.status===404 || json.error?.status==='NOT_FOUND'){lastError=`${model}: non disponibile`;continue;}
-      if(!response.ok) throw Error(json.error?.message||('HTTP '+response.status));
-      const raw=(json.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
-      let list;
-      try { list=JSON.parse(raw).titles; } catch(_) { list=raw.split('\n'); }
-      const clean=[...new Set((Array.isArray(list)?list:[]).map(t=>String(t).replace(/^\s*(?:\d+[.)]\s+|[-•*]\s+)/,'').replace(/^[\s"“”«»']+|[\s"“”«»']+$/g,'').trim()))]
-        .filter(t=>t && t.toLowerCase()!==original.trim().toLowerCase()).map(t=>t.slice(0,140)).slice(0,3);
-      if(!clean.length) throw Error('Risposta AI senza titoli utilizzabili');
-      return clean;
+      },AI_TIMEOUT_MS);
+      const message=String(r.json.error?.message||'');
+      if(r.status===401 || r.status===403 || (r.status===400 && /api.?key/i.test(message)))
+        throw Error('La chiave API non è valida o non ha i permessi: controllala in “Impostazioni sito”.');
+      if(r.ok) {
+        const titles=parseTitles(r.json,original);
+        if(titles.length)return titles;
+        errors.push({model,status:200,text:'risposta senza titoli'});
+      } else errors.push({model,status:r.status,text:describeAiError(r.status,message)});
     }
-    throw Error(lastError);
+    if(errors.length && errors.every(e=>e.status===429))
+      throw Error('Hai raggiunto il limite d’uso gratuito di Gemini su tutti i modelli disponibili. Riprova più tardi: il limite si azzera da solo.');
+    throw Error('Gemini non ha risposto. '+(errors.map(e=>`${e.model}: ${e.text}`).join(' · ')||'Nessun modello disponibile per questa chiave.'));
+  }
+
+  function scheduleAiTitles() {
+    clearTimeout(aiTimer);
+    renderTitleChoices();
+    const article=currentArticle;
+    if(!article||!aiSettings.key||aiCache[articleKey(article)])return;
+    // Dopo un errore non si riprova da soli per un minuto (resta il pulsante "Riprova").
+    const st=aiState.get(articleKey(article));
+    if(st?.status==='error' && Date.now()-st.at<60000)return;
+    // Breve attesa: scorrendo velocemente le notizie non parte una richiesta per ognuna.
+    aiTimer=setTimeout(()=>{ if(currentArticle===article)void generateTitlesFor(article); },400);
+  }
+
+  async function generateTitlesFor(article,force=false) {
+    const key=articleKey(article);
+    if(!aiSettings.key || aiState.get(key)?.status==='loading')return;
+    if(aiCache[key] && !force){renderTitleChoices();return;}
+    aiState.set(key,{status:'loading'});
+    if(currentArticle===article)renderTitleChoices();
+    try {
+      rememberTitles(key,await requestAiTitles(article.title));
+      aiState.delete(key);
+    } catch(err) { aiState.set(key,{status:'error',error:err.message,at:Date.now()}); }
+    if(currentArticle===article)renderTitleChoices();
+  }
+
+  function el(tag,className,text) {
+    const node=document.createElement(tag);
+    if(className)node.className=className;
+    if(text!==undefined)node.textContent=text;
+    return node;
+  }
+
+  function choiceButton(tagText,text,current) {
+    const choice=el('button','title-choice');choice.type='button';
+    choice.classList.toggle('active',text.trim()===current);
+    choice.append(el('span','title-choice-tag',tagText),el('span','',text));
+    choice.onclick=()=>{inpTitle.value=text;renderStory();saveCurrentStory();renderTitleChoices();};
+    return choice;
   }
 
   function renderTitleChoices() {
     const box=$('titleChoices');box.textContent='';
-    const alts=currentArticle?aiTitles.get(String(currentArticle.id)):null;
-    if(!alts?.length){box.hidden=true;return;}
+    if(!currentArticle){box.hidden=true;return;}
     box.hidden=false;
-    const current=inpTitle.value.trim();
-    [{tag:'Dal sito',text:currentArticle.title},...alts.map((text,i)=>({tag:'AI '+(i+1),text}))].forEach(option=>{
-      const choice=document.createElement('button');choice.type='button';choice.className='title-choice';
-      choice.classList.toggle('active',option.text.trim()===current);
-      const tag=document.createElement('span');tag.className='title-choice-tag';tag.textContent=option.tag;
-      const text=document.createElement('span');text.textContent=option.text;
-      choice.append(tag,text);
-      choice.onclick=()=>{inpTitle.value=option.text;renderStory();saveCurrentStory();renderTitleChoices();};
-      box.appendChild(choice);
-    });
-  }
+    const key=articleKey(currentArticle), cached=aiCache[key]?.t, st=aiState.get(key), current=inpTitle.value.trim();
 
-  $('btnAiTitles').onclick=async()=>{
-    if(!currentArticle)return alert('Seleziona prima una notizia!');
-    if(!aiSettings.key){$('boxSettings').style.display='block';cfgGeminiKey.focus();alert('Inserisci la chiave API Gemini nelle impostazioni del sito.');return;}
-    const button=$('btnAiTitles'),article=currentArticle;
-    button.disabled=true;button.textContent='⏳ Genero i titoli…';
-    try {
-      aiTitles.set(String(article.id),await requestAiTitles(article.title));
-      if(currentArticle===article)renderTitleChoices();
-    } catch(err){alert('Titoli AI non disponibili: '+err.message);}
-    finally{button.disabled=false;button.textContent='✨ 3 titoli alternativi';}
-  };
+    const head=el('div','title-choices-head');
+    head.append(el('span','',aiSettings.key?'✨ Titoli alternativi':'✨ Titoli alternativi con AI'));
+    if(aiSettings.key && st?.status!=='loading' && (cached||st?.status==='error')) {
+      const again=el('button','title-regen',cached?'↻ Altri 3':'↻ Riprova');again.type='button';
+      again.onclick=()=>generateTitlesFor(currentArticle,true);
+      head.append(again);
+    }
+    box.append(head,choiceButton('Dal sito',currentArticle.title,current));
+
+    if(!aiSettings.key) {
+      const locked=el('div','title-locked');
+      ['Un titolo che incuriosisce e fa toccare il link','La stessa notizia raccontata con più impatto','Una domanda che invoglia a leggere l’articolo']
+        .forEach((t,i)=>{ const row=el('div','title-choice title-fake');row.append(el('span','title-choice-tag',AI_LEVELS[i][1]),el('span','',t));locked.append(row); });
+      const overlay=el('div','title-lock-overlay'), card=el('div','title-lock-card');
+      card.append(el('strong','','🔒 Aggiungi le API Google gratis in 30 secondi per sbloccare questa sezione'));
+      const steps=el('div','title-lock-steps');
+      const link=el('a','title-lock-link','1. Crea la chiave gratis ↗');link.href=AI_KEY_URL;link.target='_blank';link.rel='noopener';
+      const input=el('input');input.type='password';input.placeholder='2. Incolla qui la chiave';input.autocomplete='off';
+      const unlock=el('button','primary','Sblocca');unlock.type='button';
+      unlock.onclick=()=>{
+        if(!input.value.trim()){input.focus();return;}
+        cfgGeminiKey.value=input.value.trim();saveAiSettings();
+      };
+      input.addEventListener('keydown',e=>{if(e.key==='Enter')unlock.click();});
+      steps.append(link,input,unlock);
+      card.append(steps);overlay.append(card);
+      locked.append(overlay);
+      box.append(locked);
+      return;
+    }
+    if(cached) { cached.forEach((t,i)=>box.append(choiceButton(AI_LEVELS[i]?.[1]||'AI '+(i+1),t,current))); return; }
+    if(st?.status==='error') { box.append(el('div','title-error',st.error)); return; }
+    for(let i=0;i<3;i++){ const row=el('div','title-choice title-skeleton');row.append(el('span','title-choice-tag',AI_LEVELS[i][1]),el('span','',i===0?'Genero titoli alternativi…':''));box.append(row); }
+  }
 
   async function exportStoryDataUrl() {
     await photoPromise;await logoPromise;await backgroundPromise;await ensureFonts();
@@ -759,7 +892,7 @@
     button.dataset.busy='1';button.disabled=true;button.textContent='⏳';
     quickChain=quickChain.then(async()=>{
       try {
-        selectArticle(article,card,false);
+        selectArticle(article,card,false,{withAiTitles:false});
         await addCurrentToQueue();
       } catch(e){alert('Errore preparazione storia: '+e.message);}
       finally{delete button.dataset.busy;refreshQuickButtons();}

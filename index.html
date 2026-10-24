@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>StoryFlow Studio – Editor di storie</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="ui.css?v=4.0.0">
+  <link rel="stylesheet" href="ui.css?v=4.1.0">
 </head>
 <body data-mobile-tab="news">
 
@@ -78,10 +78,7 @@
       <p class="studio-intro">Seleziona una notizia, personalizza testo e grafica, poi aggiungila alla coda.</p>
 
       <div class="control-group">
-        <label>
-          <span>Titolo nella Storia</span>
-          <button type="button" id="btnAiTitles" class="ai-button" title="Genera 3 titoli alternativi con l'intelligenza artificiale">✨ 3 titoli alternativi</button>
-        </label>
+        <label for="inpTitle"><span>Titolo nella Storia</span></label>
         <textarea id="inpTitle" placeholder="Seleziona una notizia..."></textarea>
         <div id="titleChoices" class="title-choices" aria-live="polite" hidden></div>
         <label for="cfgStickerText" style="margin-top:12px;">Testo adesivo link (pulsante cliccabile)</label>
@@ -309,6 +306,6 @@
   </div>
 </div>
 
-<script src="studio.js?v=4.0.0" defer></script>
+<script src="studio.js?v=4.1.0" defer></script>
 </body>
 </html>

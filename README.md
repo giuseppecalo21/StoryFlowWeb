@@ -84,6 +84,11 @@ Il finto composer (`tests/mock-composer.html`) riproduce la sequenza di Meta: ca
 
 ## Titoli alternativi con AI
 
-Nel pannello, **✨ 3 titoli alternativi** propone tre titoli più accattivanti, sempre fedeli alla notizia, accanto a quello del sito. Si sceglie con un clic. La chiave Gemini si inserisce in **Impostazioni sito** e resta salvata sul dispositivo. Se il modello predefinito non è disponibile, il pannello prova automaticamente quello successivo; si può anche indicarne uno a mano.
+Quando selezioni una notizia, sotto il titolo compaiono da soli tre titoli alternativi, accanto a quello del sito. Sono in scala di "curiosity gap": **leggero** (fatto chiaro più un aggancio), **medio** (trattiene l'elemento chiave), **forte** (costruito attorno all'informazione mancante). Ognuno usa una tecnica diversa. Le istruzioni all'AI vietano fatti non presenti nel titolo originale, titoli fuorvianti e le formule acchiappaclic logore.
+
+- **Senza chiave:** la sezione è sfocata, con l'invito a sbloccarla. La chiave Gemini gratuita si crea su https://aistudio.google.com/apikey e si incolla lì stesso; resta salvata sul dispositivo.
+- **Limite d'uso o Gemini sovraccarico:** il pannello passa da solo al modello successivo (prima i predefiniti, poi i modelli "flash" che Google abilita per la chiave, preferendo i "lite"). I limiti gratuiti valgono per singolo modello.
+- **Nessuna attesa infinita:** ogni richiesta ha un tempo massimo; se non arriva risposta compare un messaggio con "Riprova".
+- **Nessuna richiesta sprecata:** i titoli già generati vengono ricordati, e l'aggiunta rapida in coda non li chiede.
 
 Vedi `ROADMAP.md` per i prossimi passi.
