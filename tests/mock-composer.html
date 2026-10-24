@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Finto composer storie Meta (solo test)</title>
+<style>
+  body { font: 14px system-ui; margin: 20px; width: 1300px; }
+  [role=button] { display: inline-block; border: 1px solid #999; padding: 6px 10px; margin: 4px; cursor: pointer; }
+  [role=dialog] { position: fixed; top: 40px; left: 200px; background: #fff; border: 2px solid #333; padding: 12px; z-index: 10; }
+  .editor-body { display: flex; gap: 20px; }
+  .side { width: 160px; }
+  .stage { position: relative; width: 225px; height: 400px; }
+  .stage img { width: 225px; height: 400px; display: block; background: #ccc; }
+  .sticker { position: absolute; left: 60px; background: #fff; border: 1px solid #000; font-size: 12px; white-space: nowrap; cursor: move; }
+  .row { display: flex; align-items: center; gap: 10px; }
+</style>
+</head>
+<body>
+<div id="pageName">My Page e my_page</div>
+<div id="app"></div>
+<script>
+// Riproduce in modo semplificato il composer storie di Meta Business Suite per provare il motore
+// in più lingue. ?lang=it|en|de (de = lingua non supportata, per provare la diagnostica).
+(() => {
+  const lang = new URLSearchParams(location.search).get('lang') || 'it';
+  document.documentElement.lang = lang;
+  const L = {
+    it: { addMedia: 'Aggiungi foto/video', addLink: 'Aggiungi link', editLink: 'Modifica link', apply: 'Applica', edit: 'Modifica', editPhoto: 'Modifica foto', more: 'Altri adesivi', cancel: 'Annulla', share: 'Condividi', heading: 'Aggiungi adesivo con link', create: 'Create link sticker', remove: 'remove', shared: 'La tua storia è stata condivisa' },
+    en: { addMedia: 'Add photo/video', addLink: 'Add link', editLink: 'Edit link', apply: 'Apply', edit: 'Edit', editPhoto: 'Edit photo', more: 'More stickers', cancel: 'Cancel', share: 'Share', heading: 'Add link sticker', create: 'Create link sticker', remove: 'Remove', shared: 'Your story has been shared' },
+    de: { addMedia: 'Foto/Video hinzufügen', addLink: 'Link hinzufügen', editLink: 'Link bearbeiten', apply: 'Anwenden', edit: 'Bearbeiten', editPhoto: 'Foto bearbeiten', more: 'Weitere Sticker', cancel: 'Abbrechen', share: 'Teilen', heading: 'Link-Sticker hinzufügen', create: 'Link-Sticker erstellen', remove: 'Entfernen', shared: 'Deine Story wurde geteilt' }
+  }[lang];
+
+  const app = document.getElementById('app');
+  const state = { uploaded: false, link: '', saved: [], working: null, panel: false, shared: false };
+  window.__mock = state;
+  const IMG = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+
+  function button(label, onClick, extra = {}) {
+    const b = document.createElement('div');
+    b.setAttribute('role', 'button');
+    b.textContent = label;
+    for (const [k, v] of Object.entries(extra)) b.setAttribute(k, v);
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function render() {
+    app.textContent = '';
+    if (state.shared) { app.append(Object.assign(document.createElement('p'), { textContent: L.shared })); return; }
+    if (!state.uploaded) {
+      app.append(button(L.addMedia, () => {
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = 'image/jpeg,image/png';
+        input.addEventListener('change', () => { if (input.files.length === 1) { state.uploaded = true; render(); } });
+        input.click();
+      }));
+      return;
+    }
+    if (!state.link) {
+      app.append(button(L.addLink, openLinkDialog));
+    } else {
+      const row = document.createElement('div'); row.className = 'row';
+      row.append(button(L.editLink, () => {}), button(L.edit, openEditor));
+      app.append(row);
+    }
+    app.append(button(L.share, () => { if (!state.working) { state.shared = true; render(); } }));
+    if (state.working) app.append(renderEditor());
+  }
+
+  function openLinkDialog() {
+    const d = document.createElement('div'); d.setAttribute('role', 'dialog');
+    const input = document.createElement('input'); input.type = 'url';
+    d.append(input, button(L.apply, () => {
+      if (!input.value) return;
+      state.link = input.value;
+      state.saved = [{ text: '🔗 LINK', top: 180 }];
+      d.remove(); render();
+    }));
+    document.body.append(d);
+  }
+
+  function openEditor() { state.working = state.saved.map(s => ({ ...s })); state.panel = false; render(); }
+
+  function renderEditor() {
+    const d = document.createElement('div'); d.setAttribute('role', 'dialog');
+    const title = document.createElement('div'); title.textContent = L.editPhoto;
+    const body = document.createElement('div'); body.className = 'editor-body';
+    const side = document.createElement('div'); side.className = 'side';
+    side.append(button(L.more, () => { state.panel = true; render(); }));
+    if (state.panel && !state.working.length) {
+      side.append(button('Link', openStickerPopup, { 'aria-label': L.create }));
+    }
+    const stage = document.createElement('div'); stage.className = 'stage';
+    const img = document.createElement('img'); img.src = IMG; img.alt = '';
+    stage.append(img);
+    state.working.forEach((s, idx) => {
+      const el = document.createElement('div'); el.className = 'sticker';
+      el.style.position = 'absolute'; el.style.height = '39px'; el.style.top = s.top + 'px';
+      el.append(document.createTextNode(s.text));
+      const rm = document.createElement('button'); rm.setAttribute('aria-label', L.remove); rm.textContent = 'x';
+      rm.addEventListener('click', () => { state.working.splice(idx, 1); render(); });
+      el.append(rm);
+      let startY = null, startTop = 0;
+      el.addEventListener('pointerdown', e => { startY = e.clientY; startTop = s.top; });
+      window.addEventListener('pointermove', e => { if (startY !== null && e.buttons) { s.top = startTop + (e.clientY - startY); el.style.top = s.top + 'px'; } });
+      window.addEventListener('pointerup', () => { startY = null; });
+      stage.append(el);
+    });
+    body.append(side, stage);
+    d.append(title, body,
+      button(L.apply, () => { state.saved = state.working; state.working = null; render(); }),
+      button(L.cancel, () => { state.working = null; render(); }));
+    return d;
+  }
+
+  function openStickerPopup() {
+    const pop = document.createElement('div'); pop.setAttribute('role', 'dialog'); pop.style.left = '700px';
+    const h = document.createElement('div'); h.setAttribute('role', 'heading'); h.textContent = L.heading;
+    const url = document.createElement('input'); const text = document.createElement('input');
+    pop.append(h, url, text, button(L.apply, () => {
+      if (!url.value || !text.value) return;
+      state.working.push({ text: text.value, top: 180 });
+      pop.remove(); render();
+    }));
+    document.body.append(pop);
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "appName": "StoryFlow Studio",
+  "studioUrl": "https://giuseppe.rocks/storyflow/index.html",
+  "engineManifestUrl": "https://giuseppe.rocks/storyflow/engine/manifest.json",
+  "enginePublicKey": "",
+  "showMetaWhilePublishing": true,
+  "engineCheckMinutes": 30
+}

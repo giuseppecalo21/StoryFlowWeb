@@ -1,0 +1,7 @@
+# Chiave privata per firmare il motore: non deve MAI finire su GitHub o sul server
+keys/
+
+# App desktop
+desktop/node_modules/
+desktop/dist/
+desktop/engine/

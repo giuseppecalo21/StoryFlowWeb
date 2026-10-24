@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'">
+  <title>StoryFlow Studio</title>
+  <link rel="stylesheet" href="shell.css">
+</head>
+<body>
+  <div class="brand"><span class="mark">SF</span><span id="appName">StoryFlow Studio</span></div>
+  <nav class="tabs" aria-label="Viste">
+    <button type="button" class="tab active" data-view="studio">🎨 Pannello storie</button>
+    <button type="button" class="tab" data-view="meta">🔑 Meta Business Suite <span id="metaDot" class="dot" title="Accesso a Meta"></span></button>
+  </nav>
+  <div id="status" class="status" aria-live="polite"></div>
+  <div class="right">
+    <button type="button" id="btnMetaHome" class="ghost" title="Apri la pagina iniziale di Meta Business Suite">Accedi a Meta</button>
+    <span id="engine" class="engine">Motore …</span>
+    <button type="button" id="btnEngine" class="ghost" title="Cerca subito una nuova versione del motore">Aggiorna motore</button>
+  </div>
+  <script src="shell.js"></script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+# Cartelle di sviluppo: non devono essere raggiungibili dal web anche se caricate per errore.
+RedirectMatch 404 /(desktop|tools|tests|keys)(/|$)
+RedirectMatch 404 /\.git(/|$)
