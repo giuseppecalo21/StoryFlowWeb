@@ -222,6 +222,14 @@ const browser = await chromium.launch();
   check('“Indietro” arriva fino allo stile di partenza', start.cfgColor === initial.cfgColor && start.cfgPattern === initial.cfgPattern
     && await page.locator('#btnLuckyBack').isDisabled());
   if (shots) { await page.click('#btnLucky'); await page.screenshot({ path: join(shots, 'fortunato.png') }); }
+  await page.uncheck('#cfgTitleUppercase');
+  const titleBefore = await page.inputValue('#inpTitle');
+  const canvasBefore = await page.locator('#storyCanvas').evaluate(c => c.toDataURL());
+  await page.check('#cfgTitleUppercase');
+  check('Maiuscolo: cambia la grafica ma non il testo del titolo',
+    (await page.locator('#storyCanvas').evaluate(c => c.toDataURL())) !== canvasBefore && (await page.inputValue('#inpTitle')) === titleBefore);
+  check('Maiuscolo: ricordato nello stile della storia', await page.evaluate(() =>
+    Object.values(JSON.parse(localStorage.getItem('storyflow.studio.settings.v2.2')).sites).some(s => Object.values(s.stories || {}).some(st => st.style.titleUppercase === true))));
   await page.locator('.news-card').nth(1).click();
   check('Cambiando notizia lo storico di “Indietro” riparte', await page.locator('#btnLuckyBack').isDisabled());
   check('Nessun errore JavaScript', errors.length === 0, errors.join(' | '));

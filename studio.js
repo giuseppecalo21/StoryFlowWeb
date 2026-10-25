@@ -8,6 +8,7 @@
   const inpTitle = $('inpTitle');
   const rngFontSize = $('rngFontSize');
   const rngTextY = $('rngTextY');
+  const cfgTitleUppercase = $('cfgTitleUppercase');
   const rngZoom = $('rngZoom');
   const chkGuide = $('chkGuide');
   const cfgColor = $('cfgColor');
@@ -146,7 +147,7 @@
   const DEFAULT_SITE = 'https://wordpress.org/news';
   const blank = () => ({
     brandColor:'#6047e8', darkColor:'#181818', pattern:'halftone',
-    titleFont:'Montserrat', ctaFont:'Montserrat', titleWeight:800, ctaWeight:800, titleSize:58, titleY:0,
+    titleFont:'Montserrat', ctaFont:'Montserrat', titleWeight:800, ctaWeight:800, titleSize:58, titleY:0, titleUppercase:false,
     ctaText:"LEGGI L'ARTICOLO SU", stickerText:'WORDPRESS.ORG',
     watermarkEnabled:false, watermarkOpacity:35, watermarkSize:180,
     watermarkPosition:'top-right', backgroundEnabled:false, backgroundTint:55, backgroundPosition:'center'
@@ -180,6 +181,7 @@
     result.ctaWeight=nearestWeight(result.ctaFont,v.ctaWeight ?? initial.ctaWeight);
     result.titleSize=clamp(Number(v.titleSize)||58,36,82);
     result.titleY=clamp(Number(v.titleY)||0,-120,120);
+    result.titleUppercase=!!v.titleUppercase;
     result.ctaText=String(v.ctaText ?? initial.ctaText).slice(0,65);
     result.stickerText=String(v.stickerText ?? initial.stickerText).slice(0,70);
     result.backgroundEnabled=!!v.backgroundEnabled;
@@ -472,7 +474,9 @@
     while(ctaSize>29 && ctx.measureText(cta).width>975)ctx.font=cssFont(c.ctaFont,--ctaSize,c.ctaWeight);
     ctx.fillText(cta,W/2,CTA_Y+CTA_H/2+6,980);
 
-    const title=(inpTitle.value||'Titolo della notizia').trim();
+    const typed=(inpTitle.value||'Titolo della notizia').trim();
+    // Il tutto maiuscolo cambia solo la grafica: il titolo salvato resta com'è.
+    const title=c.titleUppercase?typed.toLocaleUpperCase('it-IT'):typed;
     let size=c.titleSize, lines, height;
     do {
       ctx.font=cssFont(c.titleFont,size,c.titleWeight);
@@ -505,7 +509,7 @@
   // --- MI SENTO FORTUNATO ---
   // Combinazione a sorpresa ma sensata: palette collaudata, font abbinati, pattern diverso dal precedente.
   // Testi, logo, sfondo caricato e inquadratura restano quelli scelti dall'utente.
-  const LUCKY_KEYS = ['brandColor','darkColor','pattern','titleFont','ctaFont','titleWeight','ctaWeight','titleSize'];
+  const LUCKY_KEYS = ['brandColor','darkColor','pattern','titleFont','ctaFont','titleWeight','ctaWeight','titleSize','titleUppercase'];
   const pick = list => list[Math.floor(Math.random()*list.length)];
   // Le ultime palette uscite (metà dell'elenco) non si ripresentano: lanci di fila danno sempre abbinamenti nuovi.
   const recentPalettes=[], luckyHistory=[];
@@ -533,7 +537,9 @@
       pattern:pick(PATTERNS.map(p=>p[0]).filter(id=>id!==currentStyle.pattern)),
       titleFont, ctaFont, titleWeight:heavyWeight(titleFont), ctaWeight:heavyWeight(ctaFont),
       // I font stretti reggono un corpo più grande a parità di righe.
-      titleSize:condensed?68+Math.floor(Math.random()*13):56+Math.floor(Math.random()*11)
+      titleSize:condensed?68+Math.floor(Math.random()*13):56+Math.floor(Math.random()*11),
+      // Il maiuscolo rende soprattutto con i font stretti.
+      titleUppercase:Math.random()<(condensed?.5:.15)
     };
   }
   // "Indietro" vale solo per la storia (o lo stile predefinito) su cui si è lanciato.
@@ -571,6 +577,7 @@
     cfgCtaText.value=c.ctaText;cfgStickerText.value=c.stickerText;
     rngFontSize.value=c.titleSize;$('lblFontSize').textContent=c.titleSize+'px';
     rngTextY.value=c.titleY;$('lblTextY').textContent=c.titleY;
+    cfgTitleUppercase.checked=c.titleUppercase;
     cfgWatermarkEnabled.checked=c.watermarkEnabled;
     cfgWatermarkOpacity.value=c.watermarkOpacity;$('lblWatermarkOpacity').textContent=c.watermarkOpacity+'%';
     cfgWatermarkSize.value=c.watermarkSize;$('lblWatermarkSize').textContent=c.watermarkSize+' px';
@@ -704,6 +711,7 @@
   cfgWatermarkEnabled.addEventListener('change',()=>changeStyle('watermarkEnabled',cfgWatermarkEnabled.checked));
   rngFontSize.addEventListener('input',()=>changeStyle('titleSize',rngFontSize.value));
   rngTextY.addEventListener('input',()=>changeStyle('titleY',rngTextY.value));
+  cfgTitleUppercase.addEventListener('change',()=>changeStyle('titleUppercase',cfgTitleUppercase.checked));
   rngZoom.addEventListener('input',()=>{photoState.zoom=Number(rngZoom.value)/100;$('lblZoom').textContent=rngZoom.value+'%';renderStory();saveCurrentStory();});
   chkGuide.addEventListener('change',()=>renderStory());
 
