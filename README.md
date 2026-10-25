@@ -27,6 +27,8 @@ La firma serve a una cosa sola, ma importante: il motore lavora dentro gli accou
 
 ### Prima volta (una sola volta)
 
+Guida passo passo per Windows e Mac, anche senza esperienza col terminale: [FIRMA-MOTORE.md](FIRMA-MOTORE.md).
+
 ```bash
 node tools/engine-keygen.mjs --android ../StoryFlow
 ```
