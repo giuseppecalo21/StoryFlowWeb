@@ -1,7 +1,7 @@
 {
-  "version": "4.0.0",
+  "version": "4.0.1",
   "file": "composer.js",
-  "sha256": "a4d183cbaa7c4dc81b153a352daf19a593a50e6cca3f510cc5ad97f914ac6a46",
+  "sha256": "2dec6db6a276872e84cbe3d11a4771dc6797dd191c9325f8fa7d122cc04b3fd6",
   "minClientApi": 1,
   "publishedAt": null,
   "signature": ""

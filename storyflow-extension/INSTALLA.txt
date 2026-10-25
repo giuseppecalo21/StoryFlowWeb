@@ -1,4 +1,4 @@
-StoryFlow – estensione Chrome 3.0.0
+StoryFlow – estensione Chrome 3.0.1
 
 Consiglio: su Windows e Mac usa l'app StoryFlow Studio, che non richiede l'estensione.
 Se preferisci restare su Chrome:

@@ -1,5 +1,9 @@
 // StoryFlow 2.5.2: il pannello sa se il bridge riceve il messaggio e se Meta viene aperto.
 (() => {
+  // Il bridge si attiva solo sulla pagina del pannello: su qualsiasi altra pagina
+  // (anche in localhost) non ascolta comandi e non invia messaggi.
+  const isDashboard = Boolean(document.getElementById('storyCanvas') && document.getElementById('siteUrl') && document.getElementById('btnPublishQueue'));
+  if (!isDashboard) return;
   // Una scheda già aperta può ricevere nuovamente il bridge dopo l'attivazione.
   if (globalThis.__STORYFLOW_BRIDGE_ACTIVE__) {
     try {

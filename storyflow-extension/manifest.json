@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "StoryFlow – Pubblicazione automatica storie",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "StoryFlow: pubblica le storie preparate nel pannello su Meta Business Suite, con motore aggiornabile dal server.",
   "permissions": [
     "debugger",
@@ -13,8 +13,8 @@
   ],
   "host_permissions": [
     "https://business.facebook.com/*",
-    "http://localhost/*",
-    "https://*/*"
+    "https://giuseppe.rocks/storyflow/*",
+    "http://localhost/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -22,11 +22,8 @@
   "content_scripts": [
     {
       "matches": [
-        "http://localhost/*",
-        "https://*/*"
-      ],
-      "exclude_matches": [
-        "https://business.facebook.com/*"
+        "https://giuseppe.rocks/storyflow/*",
+        "http://localhost/*"
       ],
       "js": [
         "saas-bridge.js"

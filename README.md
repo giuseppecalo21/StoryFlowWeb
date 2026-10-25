@@ -70,6 +70,8 @@ npm run dist:mac     # app Mac (.dmg): va compilata su un Mac
 
 Vedi `storyflow-extension/INSTALLA.txt`. Con l'interruttore **Consenti script utente** attivo, anche l'estensione riceve il motore aggiornato dal server; senza, usa quello incluso.
 
+Per sicurezza l'estensione comunica solo con il pannello su `https://giuseppe.rocks/storyflow/` e su `http://localhost` (prove in locale). Se sposti il pannello su un altro dominio, aggiorna `host_permissions` e `content_scripts.matches` in `storyflow-extension/manifest.json`, insieme a `ENGINE_MANIFEST_URL` in `storyflow-extension/engine-config.js`.
+
 ## Prove automatiche
 
 Richiedono Node 20+ e Playwright con Chromium.

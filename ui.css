@@ -96,7 +96,7 @@ button.success { background:#20b49a; border-color:#20b49a; color:#fff; }
 .editor-toggle small { display:block; font-size:10px; color:#8a85a8; margin-top:3px; }
 .editor-toggle-action { display:inline-flex; align-items:center; gap:4px; flex-shrink:0; background:var(--ui-purple); color:#fff; border-radius:99px; padding:4px 10px; font-size:10.5px; font-weight:750; }
 .editor-toggle.expanded .editor-toggle-action { background:#ecebf3; color:#555b6c; }
-.editor-chevron { font-size:14px; line-height:1; transition:transform .15s; }
+.editor-chevron { display:block; flex-shrink:0; transition:transform .15s; }
 .editor-toggle.expanded .editor-chevron { transform:rotate(180deg); }
 
 .ai-button { padding:3px 9px; font-size:10.5px; background:linear-gradient(90deg,#5b3fe0,#8a4fe6); border:none; color:#fff; border-radius:99px; }

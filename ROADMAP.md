@@ -20,9 +20,6 @@ Dopo un errore: azzera coda, stato della pubblicazione e registro, riporta l'app
 ### Android – schermo acceso durante la coda
 Durante la pubblicazione tenere lo schermo acceso, come quando si guarda un video (`FLAG_KEEP_SCREEN_ON`), e toglierlo a fine coda o in caso di errore.
 
-### Ritocco grafico
-La freccia del pulsante "Personalizza grafica" non è allineata bene con la scritta "Apri/Chiudi": sistemarla.
-
 ## Da ricordare
 - **Android – piano B**: pulsante "Condividi su Instagram" che passa la grafica creata all'app Instagram con l'intent ufficiale per le storie, per quando l'automazione non è disponibile. L'adesivo link andrà aggiunto a mano dall'utente.
 

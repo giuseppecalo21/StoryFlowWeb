@@ -163,7 +163,7 @@ if($action==='feed') {
 
     // Parametro anti-cache (_t) + ordinamento esplicito per data decrescente
     $ts = time() . mt_rand(100, 999);
-    $wpQuery = '?_embed=1& status=publish&orderby=date&order=desc&per_page='.$n.'&_t='.$ts;
+    $wpQuery = '?_embed=1&status=publish&orderby=date&order=desc&per_page='.$n.'&_t='.$ts;
 
     $requests=$path ? [
         ['wp',$prefix.'/wp-json/wp/v2/posts'.$wpQuery],
