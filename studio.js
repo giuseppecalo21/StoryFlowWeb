@@ -67,7 +67,11 @@
     ['horizontal','Righe orizzontali'],['chevrons','Chevron'],['triangles','Triangoli'],
     ['diamonds','Rombi'],['circles','Anelli'],['waves','Onde'],['bricks','Mattoni'],
     ['confetti','Coriandoli'],['stars','Stelle'],['plus','Croci'],['dashes','Trattini'],
-    ['pixels','Pixel'],['zigzag','Zig zag'],['mesh','Maglia'],['rays','Raggi']
+    ['pixels','Pixel'],['zigzag','Zig zag'],['mesh','Maglia'],['rays','Raggi'],
+    ['dot-diamonds','Rombi a retino'],['halftone-fade','Retino sfumato'],['halftone-noise','Retino a macchie'],
+    ['halftone-wave','Retino a onde'],['concentric','Cerchi concentrici'],['dot-rings','Cerchi di pois'],
+    ['targets','Bersagli'],['rosettes','Rosoni'],['arches','Archi'],['spiral','Spirale'],
+    ['network','Costellazione'],['circuit','Circuito']
   ];
   const PATTERN_IDS = new Set(PATTERNS.map(a => a[0]));
   // "Mi sento fortunato": abbinamenti di colori collaudati (squadre, scuderie, classici del design),
@@ -291,6 +295,14 @@
       for(let v=-len;v<len;v+=dist){context.beginPath();context.moveTo(v,-len);context.lineTo(v,len);context.stroke();}
       context.restore();
     };
+    // Griglia ancorata alla tela intera, così il disegno prosegue uguale da una fascia all'altra.
+    const grid=(step,fn,stepY=step,margin=step)=>{
+      for(let cy=Math.floor((y-margin)/stepY)*stepY;cy<Y+margin;cy+=stepY)
+        for(let cx=Math.floor((x-margin)/step)*step;cx<X+margin;cx+=step) fn(cx,cy,Math.round(cy/stepY),Math.round(cx/step));
+    };
+    const noise=(a,b)=>Math.abs(Math.sin(a*12.9898+b*78.233)*43758.5453)%1;
+    const dot=(cx,cy,r)=>{if(r<=.3)return;context.beginPath();context.arc(cx,cy,r,0,Math.PI*2);context.fill();};
+    const ring=(cx,cy,r)=>{context.beginPath();context.arc(cx,cy,r,0,Math.PI*2);context.stroke();};
     const polygon=(px,py,r,sides,rot=0,filled=false)=>{
       context.beginPath();for(let i=0;i<sides;i++) {const a=i*2*Math.PI/sides+rot; const u=px+Math.cos(a)*r, v=py+Math.sin(a)*r;i?context.lineTo(u,v):context.moveTo(u,v);}context.closePath();filled?context.fill():context.stroke();
     };
@@ -317,6 +329,54 @@
       case 'pixels':for(let cy=y+12;cy<Y;cy+=35)for(let cx=x+12;cx<X;cx+=35){const a=Math.abs(Math.sin(cx*19.38+cy*62.84));if(a>.45)context.fillRect(cx,cy,9+a*11,9+a*11);}break;
       case 'zigzag':for(let cy=y+25;cy<Y;cy+=50){context.beginPath();for(let cx=x;cx<X+30;cx+=25){const yy=cy+(Math.round((cx-x)/25)%2?17:-17);cx===x?context.moveTo(cx,yy):context.lineTo(cx,yy);}context.stroke();}break;
       case 'mesh':for(let cy=y+30;cy<Y;cy+=67)for(let cx=x+30;cx<X;cx+=67){polygon(cx,cy,23,6,Math.PI/6);polygon(cx+33,cy+34,23,6,Math.PI/6);}break;
+      case 'dot-diamonds':grid(22,(cx,cy)=>{
+        // Ogni rombo è fatto di pois che crescono verso il centro e spariscono sui bordi.
+        const u=((cx+cy)%176+176)%176/88-1, v=((cx-cy)%176+176)%176/88-1;
+        dot(cx,cy,8*(1-Math.max(Math.abs(u),Math.abs(v)))-.6);
+      });break;
+      case 'halftone-fade':grid(26,(cx,cy)=>dot(cx,cy,1+10*clamp((cy-y)/h,0,1)));break;
+      case 'halftone-noise':grid(24,(cx,cy)=>{
+        const n=(Math.sin(cx*.011)+Math.sin(cy*.014)+Math.sin((cx+cy)*.0065)+Math.sin((cx-cy)*.009))/4;
+        dot(cx,cy,Math.max(0,n+.25)*9);
+      });break;
+      case 'halftone-wave':grid(22,(cx,cy)=>dot(cx,cy,1.2+3.3*(1+Math.sin(cx*.017+Math.sin(cy*.012)*2.2))));break;
+      case 'concentric':{const ox=x+w/2,oy=y+h/2;for(let r=22;r<Math.hypot(w,h)/2+30;r+=34)ring(ox,oy,r);break;}
+      case 'dot-rings':{
+        const ox=x+w/2,oy=y+h/2;
+        for(let r=30,k=0;r<Math.hypot(w,h)/2+30;r+=34,k++){const n=Math.round(2*Math.PI*r/22);for(let i=0;i<n;i++){const a=i*2*Math.PI/n+k*.3;dot(ox+r*Math.cos(a),oy+r*Math.sin(a),4.2);}}
+        break;
+      }
+      case 'targets':grid(120,(cx,cy,row)=>{const px=cx+(row%2)*60;for(const r of [10,24,38,52])ring(px,cy,r);},104);break;
+      case 'rosettes':grid(110,(cx,cy,row)=>{
+        const px=cx+(row%2)*55;dot(px,cy,10);
+        for(let i=0;i<10;i++){const a=i*Math.PI/5;dot(px+27*Math.cos(a),cy+27*Math.sin(a),3.4);}
+      },95);break;
+      case 'arches':grid(90,(cx,cy,row)=>{const px=cx+(row%2)*45;for(const r of [12,24,36]){context.beginPath();context.arc(px,cy,r,Math.PI,2*Math.PI);context.stroke();}},48);break;
+      case 'spiral':{
+        const ox=x+w/2,oy=y+h/2,max=Math.hypot(w,h)/2+40;context.beginPath();
+        for(let a=0;;a+=.05){const r=6+a*36/(2*Math.PI);if(r>max)break;const u=ox+r*Math.cos(a),v=oy+r*Math.sin(a);a?context.lineTo(u,v):context.moveTo(u,v);}
+        context.stroke();break;
+      }
+      case 'network':{
+        // Punti su una griglia irregolare, uniti ai vicini: l'effetto "costellazione".
+        const step=105, at=(i,j)=>[i*step+(noise(i,j)-.5)*70,j*step+(noise(j+7,i+3)-.5)*70];
+        context.lineWidth=1.4;
+        grid(step,(cx,cy,j,i)=>{
+          const [px,py]=at(i,j);
+          for(const [di,dj] of [[1,0],[0,1],[1,1],[-1,1]]) if(noise(i*3+di,j*5+dj)>.35){
+            const [qx,qy]=at(i+di,j+dj);context.beginPath();context.moveTo(px,py);context.lineTo(qx,qy);context.stroke();
+          }
+          dot(px,py,3+noise(i+1,j+1)*4);
+        });
+        break;
+      }
+      case 'circuit':grid(44,(cx,cy,j,i)=>{
+        // Tracce verticali che finiscono in un pallino, come un circuito stampato.
+        if(noise(i,j)<.45)return;
+        const len=44*(1+Math.floor(noise(j,i)*3));
+        context.beginPath();context.moveTo(cx,cy);context.lineTo(cx,cy+len);context.stroke();
+        dot(cx,cy+len,5.5);ring(cx,cy,4);
+      },66);break;
       case 'rays':{const ox=x+w/2,oy=y+h/2;for(let i=0;i<48;i++){const a=i*Math.PI/24;context.beginPath();context.moveTo(ox+28*Math.cos(a),oy+28*Math.sin(a));context.lineTo(ox+Math.hypot(w,h)*Math.cos(a),oy+Math.hypot(w,h)*Math.sin(a));context.stroke();}break;}
     }
     context.restore();
@@ -337,8 +397,10 @@
   function redrawPatternGallery() {
     $('patternGrid').querySelectorAll('button').forEach(b=>{
       b.classList.toggle('active',b.dataset.pattern===currentStyle.pattern);
-      const c=b.querySelector('canvas'),g=c.getContext('2d');g.fillStyle=currentStyle.darkColor;g.fillRect(0,0,100,50);
-      drawPattern(g,b.dataset.pattern,0,0,100,50);
+      // La miniatura mostra un pezzo di pattern più ampio, rimpicciolito: altrimenti i motivi larghi sembrano vuoti.
+      const c=b.querySelector('canvas'),g=c.getContext('2d');
+      g.setTransform(1,0,0,1,0,0);g.fillStyle=currentStyle.darkColor;g.fillRect(0,0,100,50);
+      g.scale(.5,.5);drawPattern(g,b.dataset.pattern,0,0,200,100);g.setTransform(1,0,0,1,0,0);
     });
   }
 
