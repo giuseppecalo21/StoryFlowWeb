@@ -7,7 +7,8 @@ Pannello web per creare storie da articoli (WordPress REST / RSS) e pubblicarle 
 | Cartella / file | Cosa contiene | Va sul server? |
 |---|---|---|
 | `index.html`, `studio.js`, `ui.css`, `proxy.php` | Pannello storie | Sì |
-| `engine/` | **Motore di pubblicazione** unico (`composer.js`) + `manifest.json` firmato | Sì |
+| `engine/` | **Motore di pubblicazione** unico (`composer.js`) + `manifest.json` firmato, `meta-setup.js` per la guida iniziale | Sì |
+| `onboarding/` | Immagini della guida iniziale | Sì |
 | `storyflow-extension/` | Estensione Chrome (alternativa all'app desktop) | Solo lo zip da scaricare |
 | `desktop/` | App per Windows/Mac (Electron) | No |
 | `tools/` | Script per chiavi, firma e copia del motore | No |
@@ -78,11 +79,26 @@ Richiedono Node 20+ e Playwright con Chromium.
 
 ```bash
 node tests/engine-mock.test.mjs          # motore su un finto composer Meta (it, en, lingua sconosciuta)
-node tests/studio.test.mjs               # pannello: grafica chiusa, coda rapida, titoli AI, app desktop
+node tests/studio.test.mjs               # pannello: guida iniziale, grafica chiusa, coda rapida, titoli AI, app desktop
+node tests/meta-setup.test.mjs           # scelta e verifica del nome della pagina su una finta pagina Meta
+(cd desktop && xvfb-run -a npx electron ../tests/desktop-setup.test.cjs)  # app desktop vera: "Trova il nome in Meta" e "Verifica"
 xvfb-run -a node tests/extension.test.mjs  # estensione completa, anche con motore remoto firmato (su Linux serve xvfb)
 ```
 
 Il finto composer (`tests/mock-composer.html`) riproduce la sequenza di Meta: carica foto → link → modifica foto → adesivi → adesivo link → condividi. Non sostituisce una prova reale su Meta, ma intercetta subito le regressioni del motore.
+
+## Guida iniziale e nome della pagina Meta
+
+Al primo avvio il pannello apre una guida in 4 passaggi (si riapre da **❔ Guida**): sito, colori, accesso a Meta Business Suite e **dove pubblichiamo**.
+
+L'ultimo passaggio è il più importante: prima di pubblicare, il motore controlla che la pagina delle storie di Meta contenga il nome della pagina scritto **esattamente** come lo mostra Meta. Per evitare errori di battitura:
+
+- **App desktop e Android:** "Trova il nome in Meta" apre la pagina delle storie e l'utente clicca sul nome della sua pagina; il testo viene copiato così com'è. "Verifica" ripete lo stesso controllo del motore e, se cambia solo qualche maiuscola, propone il nome esatto. Lo script è `engine/meta-setup.js` e non dipende dai nomi dei menu di Meta.
+- **Estensione / browser:** guida passo passo con un'illustrazione. Per mostrare uno screenshot vero basta caricare `onboarding/dove-pubblichiamo.png`: il pannello lo usa al posto di `onboarding/dove-pubblichiamo.svg`.
+
+Se durante la pubblicazione il nome non viene trovato, il pannello lo spiega in parole semplici e offre il pulsante per correggerlo.
+
+`meta-setup.js` viene copiato nell'app desktop a ogni build e nell'app Android da `node tools/sync-engine.mjs --android ../StoryFlow`.
 
 ## Titoli alternativi con AI
 

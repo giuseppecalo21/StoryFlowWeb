@@ -42,6 +42,9 @@ let front = 'studio';
 let metaLoggedIn = false;
 let progressText = '';
 const run = { running: false, state: null, lastProgressAt: 0, watchdog: null };
+// Onboarding: scelta o verifica del nome della pagina nella vista Meta (mai insieme a una coda).
+const setup = { busy: false };
+/** @type {string} */ let metaSetupCode = '';
 
 const reportPath = () => path.join(app.getPath('userData'), 'last-report.json');
 
@@ -200,7 +203,7 @@ function withTimeout(promise, ms) {
 }
 
 async function startQueue(payloadJson) {
-  if (run.running) return;
+  if (run.running || setup.busy) return;
   let payload;
   try { payload = JSON.parse(payloadJson); } catch (_) { return; }
   const items = Array.isArray(payload.items) ? payload.items : [];
@@ -282,6 +285,67 @@ function lastReport() {
   });
 }
 
+// --- ONBOARDING: NOME DELLA PAGINA META ---
+// Apre la pagina delle storie (la stessa del motore) e vi esegue engine/meta-setup.js:
+// "pick" fa cliccare all'utente il nome della sua Pagina/profilo, "verify" ripete il controllo del motore.
+
+const SETUP_REASONS = ['cancel', 'timeout', 'notfound', 'login', 'busy', 'navigated', 'error', 'empty', 'restart'];
+
+function cleanSetupResult(res) {
+  const r = res && typeof res === 'object' ? res : {};
+  return {
+    ok: r.ok === true,
+    reason: SETUP_REASONS.includes(r.reason) ? r.reason : (r.ok === true ? '' : 'error'),
+    text: String(r.text || '').slice(0, 200),
+    suggestion: String(r.suggestion || '').slice(0, 200)
+  };
+}
+
+async function runMetaSetup(kind, text) {
+  if (run.running || setup.busy) return cleanSetupResult({ reason: 'busy' });
+  setup.busy = true;
+  const mw = metaView.webContents;
+  /** @type {(() => void) | null} */ let stopWatching = null;
+  let needsLogin = false;
+  try {
+    progressText = kind === 'pick' ? 'Clicca sul nome della tua pagina in Meta Business Suite' : 'Verifica del nome della pagina…';
+    pushToolbarState();
+    try { await mw.loadURL(`${COMPOSER_URL}?sf_setup=${Date.now()}`); } catch (_) {}
+    if (!isComposerUrl(mw.getURL())) {
+      // Meta ha mandato al login: lasciamo la vista Meta aperta per accedere.
+      needsLogin = true;
+      showView('meta');
+      return cleanSetupResult({ reason: 'login' });
+    }
+    if (kind === 'pick') showView('meta');
+    const call = kind === 'pick' ? 'window.__sfMetaSetup.pick()' : `window.__sfMetaSetup.verify(${JSON.stringify(String(text || ''))})`;
+    // Se la pagina cambia o si chiude, lo script iniettato non risponderà più.
+    const interrupted = new Promise(resolve => {
+      const onNav = () => resolve({ reason: 'navigated' });
+      mw.once('did-navigate', onNav);
+      stopWatching = () => mw.removeListener('did-navigate', onNav);
+    });
+    const limit = kind === 'pick' ? 6 * 60 * 1000 : 40 * 1000;
+    const res = await Promise.race([
+      mw.executeJavaScript(`${metaSetupCode}\n;${call}`).catch(() => ({ reason: 'error' })),
+      interrupted,
+      new Promise(resolve => setTimeout(() => resolve({ reason: 'timeout' }), limit))
+    ]);
+    // Meta può mandare al login anche dopo il caricamento della pagina.
+    if (res && res.reason === 'navigated' && !isComposerUrl(mw.getURL())) {
+      needsLogin = true;
+      showView('meta');
+      return cleanSetupResult({ reason: 'login' });
+    }
+    return cleanSetupResult(res);
+  } finally {
+    if (stopWatching) stopWatching();
+    setup.busy = false;
+    progressText = '';
+    if (kind === 'pick' && !needsLogin) showView('studio'); else pushToolbarState();
+  }
+}
+
 // --- CLIC "VERI" tramite Chrome DevTools Protocol (come chrome.debugger nell'estensione) ---
 
 async function cdp(method, params) {
@@ -326,6 +390,17 @@ function registerIpc() {
     if (!fromStudio(e)) return;
     if (!run.running && !isMetaUrl(metaView.webContents.getURL())) metaView.webContents.loadURL(LOGIN_URL);
     showView('meta');
+  });
+  ipcMain.handle('sf:pickMetaTarget', e => (fromStudio(e) ? runMetaSetup('pick') : null));
+  ipcMain.handle('sf:verifyMetaTarget', (e, text) => (fromStudio(e) ? runMetaSetup('verify', String(text || '').slice(0, 200)) : null));
+  ipcMain.on('sf:openMetaComposer', e => {
+    if (!fromStudio(e) || run.running || setup.busy) return;
+    metaView.webContents.loadURL(COMPOSER_URL);
+    showView('meta');
+  });
+  ipcMain.on('sf:cancelMetaSetup', e => {
+    if (!fromStudio(e) || !setup.busy) return;
+    metaView.webContents.executeJavaScript('window.__sfMetaSetup && window.__sfMetaSetup.cancel()').catch(() => {});
   });
   ipcMain.on('sf:getLastReport', e => { e.returnValue = fromStudio(e) ? lastReport() : JSON.stringify({ available: false }); });
   ipcMain.on('sf:getEngineInfo', e => { e.returnValue = JSON.stringify(engine.info()); });
@@ -397,11 +472,13 @@ app.on('second-instance', () => {
 
 app.whenReady().then(() => {
   // Motore integrato: copiato in desktop/engine da "npm run sync-engine"; in sviluppo va bene anche ../engine.
-  const bundledDir = path.join(ROOT, 'engine');
+  const copiedDir = path.join(ROOT, 'engine');
+  const bundledDir = fs.existsSync(copiedDir) ? copiedDir : path.join(ROOT, '..', 'engine');
+  metaSetupCode = fs.readFileSync(path.join(bundledDir, 'meta-setup.js'), 'utf8');
   engine = new EngineManager({
     manifestUrl: config.engineManifestUrl,
     publicKey: config.enginePublicKey,
-    bundledDir: fs.existsSync(bundledDir) ? bundledDir : path.join(ROOT, '..', 'engine'),
+    bundledDir,
     cacheDir: path.join(app.getPath('userData'), 'engine'),
     fetch: url => net.fetch(url, { cache: 'no-store' })
   });

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>StoryFlow Studio – Editor di storie</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="ui.css?v=4.1.0">
+  <link rel="stylesheet" href="ui.css?v=4.2.1">
 </head>
 <body data-mobile-tab="news">
 
@@ -19,6 +19,7 @@
     <button class="primary" id="btnFetch">Carica notizie</button>
     <button class="secondary" id="btnSettings">Impostazioni sito</button>
     <button class="secondary" id="btnMetaLogin" hidden>🔑 Account Meta</button>
+    <button class="secondary" id="btnGuide" title="Rivedi i passaggi iniziali">❔ Guida</button>
     <button class="secondary" id="btnExtension">Scarica app</button>
     <span id="extStatus" class="badge-ext">Verifica motore...</span>
   </div>
@@ -208,8 +209,9 @@
       <div class="control-group" id="boxSettings" style="display:none;">
         <label><span>Configurazione Brand & Canali</span></label>
         <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
-          <label for="cfgMetaTarget">Pagina/profili collegati (testo da verificare)</label>
+          <label for="cfgMetaTarget">Nome della pagina su cui pubblicare (come lo scrive Meta)</label>
           <input type="text" id="cfgMetaTarget" value="" placeholder="Es. Nome della Pagina e nome_profilo">
+          <button type="button" id="btnMetaTargetHelp" class="link-button">Dove trovo questo nome?</button>
           <label for="cfgGeminiKey">Chiave API Gemini (titoli alternativi)</label>
           <input type="password" id="cfgGeminiKey" placeholder="AIzaSy..." autocomplete="off">
           <label for="cfgAiModel">Modello AI (facoltativo)</label>
@@ -288,6 +290,7 @@
         <strong id="publishOutcomeTitle">Esito positivo</strong>
         <span id="publishOutcomeDesc">Operazione conclusa correttamente.</span>
       </div>
+      <button type="button" id="btnFixChannel" class="secondary" style="padding:8px 14px;" hidden>Sistema il nome della pagina</button>
       <button type="button" id="btnOutcomeDone" class="primary" style="padding:8px 14px;">Chiudi</button>
     </div>
 
@@ -315,6 +318,118 @@
   </div>
 </div>
 
-<script src="studio.js?v=4.1.0" defer></script>
+<!-- ONBOARDING: 4 passaggi al primo avvio, riapribile da "Guida" -->
+<div id="onboardingModal" class="modal-backdrop onboarding-backdrop" hidden>
+  <div class="onboarding-dialog" role="dialog" aria-modal="true" aria-labelledby="obHeading">
+    <div class="publish-top">
+      <span class="publish-icon">SF</span>
+      <span class="publish-kicker">STORYFLOW / PRIMI PASSI</span>
+      <button type="button" id="btnObClose" title="Chiudi la guida">×</button>
+    </div>
+    <ol class="ob-steps" id="obSteps">
+      <li data-step="0"><span>1</span>Il tuo sito</li>
+      <li data-step="1"><span>2</span>I tuoi colori</li>
+      <li data-step="2"><span>3</span>Accesso a Meta</li>
+      <li data-step="3"><span>4</span>Dove pubblichiamo</li>
+    </ol>
+    <h2 id="obHeading" class="ob-sr">Primi passi</h2>
+
+    <section class="ob-step" data-step="0">
+      <h3>Da dove prendiamo le notizie?</h3>
+      <p>Scrivi l’indirizzo del tuo sito o del tuo blog: StoryFlow ne legge gli ultimi articoli e li trasforma in storie pronte da pubblicare.</p>
+      <label for="obSite">Indirizzo del sito</label>
+      <div class="ob-inline">
+        <input type="url" id="obSite" placeholder="https://iltuosito.it">
+        <button type="button" id="btnObFetch" class="secondary">Prova</button>
+      </div>
+      <p class="ob-feedback" id="obSiteFeedback" aria-live="polite"></p>
+    </section>
+
+    <section class="ob-step" data-step="1" hidden>
+      <h3>Diamo alle storie il tuo stile</h3>
+      <p>Scegli il colore principale e quello delle parti scure. Potrai cambiare tutto, anche font e logo, da «Personalizza grafica».</p>
+      <div class="ob-style">
+        <div class="ob-style-controls">
+          <label for="obColor">Colore principale</label>
+          <input type="color" id="obColor" class="color-control">
+          <label for="obDarkColor">Colore delle parti scure</label>
+          <input type="color" id="obDarkColor" class="color-control">
+          <label for="obPattern">Motivo di sfondo</label>
+          <select id="obPattern"></select>
+        </div>
+        <canvas id="obPreview" width="216" height="384" aria-label="Anteprima della storia"></canvas>
+      </div>
+    </section>
+
+    <section class="ob-step" data-step="2" hidden>
+      <h3>Colleghiamo Meta Business Suite</h3>
+      <p>Le storie escono attraverso Meta Business Suite, lo strumento gratuito di Meta per gestire Pagine Facebook e profili Instagram. Basta accedere una volta con il tuo solito account Facebook.</p>
+      <div class="ob-note ob-safe">
+        <strong>🔒 I tuoi dati restano tuoi</strong>
+        <span>L’accesso avviene direttamente sul sito di Meta e resta salvato solo su questo dispositivo. StoryFlow non vede e non salva né il nome utente né la password.</span>
+      </div>
+      <button type="button" id="btnObMetaLogin" class="primary ob-wide">Apri Meta Business Suite</button>
+      <p class="ob-feedback" id="obMetaFeedback" aria-live="polite"></p>
+      <details class="ob-details">
+        <summary>Non hai ancora Meta Business Suite?</summary>
+        <p>Nessun problema: è gratuito e ti serve solo il tuo account Facebook.</p>
+        <ol>
+          <li>Vai su <a href="https://business.facebook.com/" target="_blank" rel="noopener">business.facebook.com</a> e accedi con Facebook.</li>
+          <li>Se è la prima volta, Meta ti chiede qualche dato sulla tua attività (nome, email): bastano un paio di minuti.</li>
+          <li>Aggiungi la tua <strong>Pagina Facebook</strong> e il tuo <strong>profilo Instagram</strong>: lo trovi nelle <strong>Impostazioni</strong> di Meta Business Suite, nella parte dedicata agli account (voci «Pagine» e «Account Instagram»).</li>
+          <li>Il profilo Instagram deve essere <strong>professionale</strong> («Azienda» o «Creator»): si passa gratis dalle impostazioni dell’app Instagram.</li>
+        </ol>
+        <p class="ob-warn">⚠️ Senza Pagina e profilo collegati a Meta Business Suite, StoryFlow non ha dove pubblicare.</p>
+        <p class="small-note">Meta cambia spesso i nomi dei menu: se non trovi una voce, cerca «Pagine» o «Account Instagram» nelle Impostazioni.</p>
+      </details>
+    </section>
+
+    <section class="ob-step" data-step="3" hidden>
+      <h3>Su quale pagina pubblichiamo?</h3>
+      <p>L’ultimo passo, ma il più importante. Prima di ogni pubblicazione StoryFlow controlla che Meta sia aperto proprio sulla tua pagina, cercandone il nome <strong>scritto esattamente come lo scrive Meta</strong>. Così una storia non finisce mai nel posto sbagliato.</p>
+
+      <div class="ob-note ob-both">
+        <strong>📣 Facebook e Instagram in un colpo solo</strong>
+        <span>Se la tua Pagina Facebook è collegata al profilo Instagram, Meta Business Suite pubblica la stessa storia su tutti e due insieme e li mostra uno accanto all’altro, per esempio «Nome della Pagina e nome_profilo». Usa tutta la scritta, «e» compresa: così StoryFlow controlla che siano selezionati entrambi e, se ne manca uno, si ferma invece di pubblicare a metà.</span>
+      </div>
+
+      <div class="ob-note ob-auto" id="obPickBox" hidden>
+        <strong>✨ Il modo più semplice</strong>
+        <span>Apriamo la pagina di Meta in cui si creano le storie: tu clicchi sul nome della tua pagina e lo copiamo noi, lettera per lettera. Se ci sono Pagina e profilo insieme, ti chiediamo se vuoi tutta la scritta.</span>
+        <button type="button" id="btnObPick" class="primary ob-wide">Trova il nome in Meta</button>
+        <button type="button" id="btnObPickCancel" class="secondary ob-wide" hidden>Annulla</button>
+      </div>
+
+      <label for="obMetaTarget" id="obTargetLabel">Nome della pagina</label>
+      <div class="ob-inline">
+        <input type="text" id="obMetaTarget" placeholder="Es. Nome della Pagina e nome_profilo" autocomplete="off" spellcheck="false">
+        <button type="button" id="btnObVerify" class="secondary" hidden>Verifica</button>
+      </div>
+      <div class="ob-result" id="obTargetResult" aria-live="polite" hidden></div>
+
+      <details class="ob-details" id="obManual">
+        <summary>Preferisci copiarlo a mano? Ecco dove si trova</summary>
+        <ol class="ob-guide">
+          <li>Apri la pagina di Meta Business Suite per creare le storie: <a href="https://business.facebook.com/latest/story_composer/" target="_blank" rel="noopener">business.facebook.com/latest/story_composer</a>. Se hai più pagine, controlla che sia selezionata quella giusta.</li>
+          <li>Cerca il riquadro che indica <strong>dove verrà pubblicata la storia</strong>: accanto all’immagine del profilo ci sono il nome della tua Pagina Facebook e, se è collegato, quello del profilo Instagram.</li>
+          <li>Copia il nome <strong>esattamente com’è</strong>: maiuscole, spazi, punti e trattini compresi. Se pubblichi su Facebook e Instagram insieme, copia tutta la scritta, «e» compresa.</li>
+          <li>Incollalo nella casella qui sopra.</li>
+        </ol>
+        <figure class="ob-figure">
+          <img id="obGuideImage" src="onboarding/dove-pubblichiamo.svg" alt="Schema della pagina per creare le storie: la scritta da copiare, con il nome della Pagina e quello del profilo Instagram, è nel riquadro che indica dove verrà pubblicata la storia">
+          <figcaption id="obGuideCaption">Illustrazione semplificata: l’aspetto reale di Meta Business Suite può essere diverso.</figcaption>
+        </figure>
+      </details>
+    </section>
+
+    <div class="ob-nav">
+      <button type="button" id="btnObBack" class="secondary">← Indietro</button>
+      <span id="obCount">1 di 4</span>
+      <button type="button" id="btnObNext" class="primary">Avanti →</button>
+    </div>
+  </div>
+</div>
+
+<script src="studio.js?v=4.2.1" defer></script>
 </body>
 </html>

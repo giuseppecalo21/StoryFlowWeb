@@ -8,7 +8,7 @@ const desktop = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const source = join(desktop, '..', 'engine');
 const target = join(desktop, 'engine');
 mkdirSync(target, { recursive: true });
-for (const file of ['composer.js', 'manifest.json']) {
+for (const file of ['composer.js', 'manifest.json', 'meta-setup.js']) {
   const from = join(source, file);
   if (!existsSync(from)) throw new Error(`Manca ${from}`);
   copyFileSync(from, join(target, file));

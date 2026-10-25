@@ -798,7 +798,8 @@
         if(idx===0)selectArticle(it,card,false);
       });
       refreshQuickButtons();
-    } catch(err){listEl.textContent='Errore lettura feed: '+err.message;}
+      return data.items.length;
+    } catch(err){listEl.textContent='Errore lettura feed: '+err.message;return 0;}
   }
   $('btnFetch').onclick=fetchNews;
   siteUrl.addEventListener('change',()=>{
@@ -1167,6 +1168,7 @@
 
   function showOutcomeBanner(isSuccess, title, desc) {
     const box = $('publishOutcome');
+    $('btnFixChannel').hidden = true;
     box.hidden = false;
     box.className = 'publish-outcome ' + (isSuccess ? 'success' : 'error');
     $('publishOutcomeTitle').textContent = (isSuccess ? '✓ ' : '✕ ') + title;
@@ -1208,7 +1210,12 @@
       $('publishFailureMessage').textContent=explanation;
       $('publishTechnicalLog').textContent=Array.isArray(info.log)&&info.log.length?info.log.join('\n'):'';
       reportCache=`StoryFlow — Errore\nFase: ${failedStage}\nMotivo: ${explanation}\n`+(info.log||[]).join('\n');
-      showOutcomeBanner(false, 'Esito negativo', explanation);
+      // Il motore non ha trovato il nome della pagina in Meta: lo spieghiamo in parole semplici.
+      const missing=/Canale "([\s\S]*?)" non trovato/.exec(explanation);
+      if(missing){
+        showOutcomeBanner(false, 'Pagina non trovata in Meta', `Non troviamo «${missing[1]}» nella pagina delle storie di Meta Business Suite. Il nome deve essere scritto esattamente come lo mostra Meta e la pagina deve essere collegata al tuo account Meta Business Suite.`);
+        $('btnFixChannel').hidden=false;
+      } else showOutcomeBanner(false, 'Esito negativo', explanation);
     }
     if(stage==='done'){
       $('publishDiagnosis').hidden=true;
@@ -1232,10 +1239,8 @@
     // Il nome dei canali serve a verificare di pubblicare sull'account giusto.
     const target=cfgMetaTarget.value.trim();
     queue.forEach(it=>{ if(!it.metaTarget)it.metaTarget=target; });
-    if(queue.some(it=>!it.metaTarget)){
-      $('boxSettings').style.display='block';cfgMetaTarget.focus();
-      return alert('Scrivi in “Impostazioni sito” il nome della Pagina/profilo su cui pubblicare, così StoryFlow controlla di usare l’account giusto.');
-    }
+    // Senza il nome della pagina non si parte: si apre il passaggio dell'onboarding che spiega dove trovarlo.
+    if(queue.some(it=>!it.metaTarget))return openOnboarding(OB_CHANNEL_STEP);
     if(workflowActive)return alert('Una richiesta è già in corso.');
 
     activeRequestId='sf-'+Date.now();
@@ -1262,6 +1267,7 @@
   $('btnPublishQueue').onclick=()=>startQueue(false);
   $('btnTestQueue').onclick=()=>startQueue(true);
   $('btnOutcomeDone').onclick=()=>{progressModal.hidden=true;};
+  $('btnFixChannel').onclick=()=>{progressModal.hidden=true;openOnboarding(OB_CHANNEL_STEP);};
   $('btnCloseProgress').onclick=()=>{progressModal.hidden=true;};
   $('btnCopyError').onclick=async()=>{
     if(!reportCache)return;
@@ -1310,7 +1316,203 @@
   $('btnOpenExtensionGate').onclick=()=>{modal.hidden=false;};
   $('btnCloseExtension').onclick=()=>{modal.hidden=true;};
 
+
+  // --- ONBOARDING (primo avvio, riapribile da "Guida") ---
+  // Quattro passaggi: sito, colori, accesso a Meta e nome della pagina su cui pubblicare.
+  // Il nome deve essere identico a quello che Meta mostra nella pagina delle storie: è il testo che il
+  // motore cerca prima di pubblicare. Nelle app lo si sceglie cliccandolo direttamente nella pagina di Meta
+  // (engine/meta-setup.js), così non dipendiamo dai nomi dei menu, che Meta cambia spesso.
+  const ONBOARDING_KEY='storyflow.onboarding.v1';
+  const OB_STEPS=4, OB_CHANNEL_STEP=3;
+  const obModal=$('onboardingModal'), obMetaTarget=$('obMetaTarget');
+  let obStep=0, obSetupBusy=false, obSkipWarned=false, obGuideChecked=false, setupResolver=null;
+  const nativeHas=name=>isNativeApp()&&typeof window.StoryFlowNative[name]==='function';
+  const onboardingDone=()=>{try{return localStorage.getItem(ONBOARDING_KEY)==='done';}catch(_){return true;}};
+  PATTERNS.forEach(([id,name])=>{const o=document.createElement('option');o.value=id;o.textContent=name;$('obPattern').appendChild(o);});
+
+  // Desktop: la funzione restituisce una Promise. Android: risponde con window.__onStoryFlowSetupResult.
+  function nativeSetup(method,...args){
+    return new Promise(resolve=>{
+      const done=raw=>{
+        setupResolver=null;
+        let res=raw;
+        if(typeof raw==='string'){try{res=JSON.parse(raw);}catch(_){res=null;}}
+        resolve(res&&typeof res==='object'?res:{ok:false,reason:'error'});
+      };
+      setupResolver=done;
+      try {
+        const r=window.StoryFlowNative[method](...args);
+        if(r&&typeof r.then==='function')r.then(done,()=>done(null));
+      } catch(_){done(null);}
+    });
+  }
+  window.__onStoryFlowSetupResult=res=>{if(setupResolver)setupResolver(res);};
+
+  function setMetaTarget(text){
+    const value=String(text||'').trim();
+    obMetaTarget.value=value;cfgMetaTarget.value=value;
+    getProfile().metaTarget=value;persistStore();
+  }
+  function showObResult(kind,text,actions=[]){
+    const box=$('obTargetResult');
+    box.hidden=false;box.className='ob-result '+kind;box.textContent='';
+    const span=document.createElement('span');span.textContent=text;box.appendChild(span);
+    actions.forEach(([label,fn])=>{const b=document.createElement('button');b.type='button';b.className='secondary';b.textContent=label;b.onclick=fn;box.appendChild(b);});
+  }
+  function showSetupFailure(res,target){
+    const name=res.text||target||'';
+    if(res.reason==='login')return showObResult('err','Prima devi accedere a Meta Business Suite: ti abbiamo aperto la pagina di accesso. Fatto l’accesso, torna qui e riprova.');
+    if(res.reason==='notfound'){
+      if(res.suggestion)return showObResult('err',`Non troviamo «${name}» nella pagina delle storie di Meta, ma c’è «${res.suggestion}»: cambia solo qualche maiuscola.`,[[`Usa «${res.suggestion}»`,()=>{setMetaTarget(res.suggestion);showObResult('ok',`Fatto! Pubblicheremo su «${res.suggestion}».`);}]]);
+      return showObResult('err',`Non troviamo «${name}» nella pagina delle storie di Meta. Controlla maiuscole, spazi e punteggiatura`+(nativeHas('pickMetaTarget')?', oppure usa «Trova il nome in Meta».':' e che la pagina sia collegata a Meta Business Suite.'));
+    }
+    const msg={cancel:'Scelta annullata: puoi riprovare quando vuoi.',timeout:'Tempo scaduto: riprova quando vuoi.',busy:'C’è già un’operazione in corso con Meta: aspetta che finisca.',navigated:'La pagina di Meta è cambiata prima della scelta: riprova.'}[res.reason];
+    showObResult('err',msg||'Qualcosa non ha funzionato: riprova tra poco.');
+  }
+  function setPickBusy(busy){
+    obSetupBusy=busy;
+    $('btnObPick').disabled=busy;$('btnObVerify').disabled=busy;
+    $('btnObPickCancel').hidden=!busy||!nativeHas('cancelMetaSetup');
+  }
+  async function obPick(){
+    if(obSetupBusy||workflowActive)return;
+    setPickBusy(true);
+    showObResult('wait','Si è aperta la pagina delle storie di Meta: clicca sul nome della tua pagina.');
+    const res=await nativeSetup('pickMetaTarget');
+    setPickBusy(false);
+    if(res.ok){setMetaTarget(res.text);showObResult('ok',`Perfetto! Pubblicheremo su «${res.text}». Se vuoi puoi modificarlo nella casella e poi premere «Verifica».`);}
+    else showSetupFailure(res);
+  }
+  async function obVerify(){
+    const target=obMetaTarget.value.trim();
+    if(!target)return showObResult('err','Scrivi prima il nome della pagina.');
+    if(obSetupBusy||workflowActive)return;
+    setMetaTarget(target);
+    setPickBusy(true);
+    showObResult('wait','Controllo nella pagina delle storie di Meta… può volerci fino a mezzo minuto.');
+    const res=await nativeSetup('verifyMetaTarget',target);
+    setPickBusy(false);
+    if(res.ok)showObResult('ok',`Trovato! Meta mostra «${target}»: pubblicheremo lì.`);
+    else showSetupFailure(res,target);
+  }
+
+  function drawObPreview(){
+    if(obModal.hidden||obStep!==1)return;
+    renderStory(false);
+    $('obPreview').getContext('2d').drawImage(canvas,0,0,216,384);
+    renderStory();
+  }
+  function obStyle(key,value){
+    changeStyle(key,value);
+    const p=getProfile();p.defaults=safeStyle({...p.defaults,[key]:value});persistStore();
+    drawObPreview();
+  }
+  // Se esiste uno screenshot vero (onboarding/dove-pubblichiamo.png) lo usiamo al posto dell'illustrazione.
+  function loadGuideScreenshot(){
+    if(obGuideChecked)return;
+    obGuideChecked=true;
+    const real=new Image();
+    real.onload=()=>{$('obGuideImage').src=real.src;$('obGuideCaption').textContent='Esempio dalla pagina delle storie di Meta Business Suite.';};
+    real.src='onboarding/dove-pubblichiamo.png';
+  }
+  function showObStep(n){
+    obStep=clamp(n,0,OB_STEPS-1);
+    obModal.querySelectorAll('.ob-step').forEach(sec=>{sec.hidden=Number(sec.dataset.step)!==obStep;});
+    $('obSteps').querySelectorAll('li').forEach(li=>{
+      const i=Number(li.dataset.step);
+      li.classList.toggle('active',i===obStep);li.classList.toggle('done',i<obStep);
+    });
+    $('obCount').textContent=`${obStep+1} di ${OB_STEPS}`;
+    $('btnObBack').disabled=obStep===0;
+    $('btnObNext').textContent=obStep===OB_STEPS-1?'Fatto, iniziamo!':'Avanti →';
+    if(obStep===1){
+      $('obColor').value=currentStyle.brandColor;$('obDarkColor').value=currentStyle.darkColor;$('obPattern').value=currentStyle.pattern;
+      drawObPreview();
+    }
+    if(obStep===OB_CHANNEL_STEP){
+      obMetaTarget.value=getProfile().metaTarget||'';
+      $('obTargetResult').hidden=true;obSkipWarned=false;
+      loadGuideScreenshot();
+    }
+  }
+  function openOnboarding(step=0){
+    $('obSite').value=siteUrl.value;
+    $('obSiteFeedback').textContent='';$('obMetaFeedback').textContent='';
+    const canPick=nativeHas('pickMetaTarget');
+    $('obPickBox').hidden=!canPick;
+    $('btnObVerify').hidden=!nativeHas('verifyMetaTarget');
+    $('obTargetLabel').textContent=canPick?'Nome della pagina (lo compiliamo noi, oppure scrivilo tu)':'Nome della pagina';
+    $('obManual').open=!canPick;
+    obModal.hidden=false;
+    showObStep(step);
+  }
+  function closeOnboarding(){
+    if(obSetupBusy&&nativeHas('cancelMetaSetup'))window.StoryFlowNative.cancelMetaSetup();
+    obModal.hidden=true;
+    try{localStorage.setItem(ONBOARDING_KEY,'done');}catch(_){}
+  }
+  // Passo 1: il sito si cambia come dalla barra in alto (ogni sito ha le sue impostazioni).
+  function applyObSite(){
+    const value=$('obSite').value.trim();
+    if(!/^https?:\/\/[^\s/]+\.[^\s]+/i.test(value)){
+      const fb=$('obSiteFeedback');fb.className='ob-feedback err';fb.textContent='Scrivi l’indirizzo completo, per esempio https://iltuosito.it';
+      return false;
+    }
+    if(value!==siteUrl.value.trim()){siteUrl.value=value;siteUrl.dispatchEvent(new Event('change'));}
+    return true;
+  }
+  $('btnObFetch').onclick=async()=>{
+    if(!applyObSite())return;
+    const fb=$('obSiteFeedback'),b=$('btnObFetch');
+    fb.className='ob-feedback';fb.textContent='Cerco gli articoli…';b.disabled=true;
+    const n=await fetchNews();
+    b.disabled=false;
+    fb.className='ob-feedback '+(n?'ok':'err');
+    fb.textContent=n?`Trovati ${n} articoli: ci siamo!`:'Non riusciamo a leggere gli articoli di questo sito. Controlla l’indirizzo: per un blog WordPress basta l’indirizzo principale.';
+  };
+  $('obColor').addEventListener('input',e=>obStyle('brandColor',e.target.value));
+  $('obDarkColor').addEventListener('input',e=>obStyle('darkColor',e.target.value));
+  $('obPattern').addEventListener('input',e=>obStyle('pattern',e.target.value));
+  $('btnObMetaLogin').onclick=()=>{
+    const fb=$('obMetaFeedback');fb.className='ob-feedback';
+    if(isNativeApp()){
+      window.StoryFlowNative.openMetaLogin();
+      fb.textContent=nativePlatform()==='desktop'?'Dopo l’accesso torna qui con la scheda «Pannello storie» in alto.':'Dopo l’accesso torna qui con il pulsante «Torna a StoryFlow Studio».';
+    } else {
+      window.open('https://business.facebook.com/','_blank','noopener');
+      fb.textContent='Si è aperta una nuova scheda: accedi lì, poi torna su questa.';
+    }
+  };
+  // Nelle app il link alla pagina delle storie si apre nella vista Meta, dove l'accesso è già fatto.
+  $('obManual').querySelector('a').addEventListener('click',e=>{
+    if(!nativeHas('openMetaComposer'))return;
+    e.preventDefault();window.StoryFlowNative.openMetaComposer();
+  });
+  // Mentre si scrive il campo resta com'è (niente spazi tolti a metà parola): si salva il testo ripulito.
+  obMetaTarget.addEventListener('input',()=>{
+    const value=obMetaTarget.value.trim();
+    cfgMetaTarget.value=value;getProfile().metaTarget=value;persistStore();
+    $('obTargetResult').hidden=true;
+  });
+  $('btnObPick').onclick=obPick;
+  $('btnObVerify').onclick=obVerify;
+  $('btnObPickCancel').onclick=()=>{if(nativeHas('cancelMetaSetup'))window.StoryFlowNative.cancelMetaSetup();};
+  $('btnObBack').onclick=()=>showObStep(obStep-1);
+  $('btnObNext').onclick=()=>{
+    if(obStep===0&&!applyObSite())return;
+    if(obStep<OB_STEPS-1)return showObStep(obStep+1);
+    if(!getProfile().metaTarget&&!obSkipWarned){
+      obSkipWarned=true;
+      return showObResult('err','Senza il nome della pagina non possiamo pubblicare. Puoi aggiungerlo anche dopo da «Impostazioni sito»: premi di nuovo «Fatto» per chiudere comunque.');
+    }
+    closeOnboarding();
+  };
+  $('btnObClose').onclick=closeOnboarding;
+  $('btnGuide').onclick=()=>openOnboarding(0);
+  $('btnMetaTargetHelp').onclick=()=>openOnboarding(OB_CHANNEL_STEP);
+
   siteUrl.value=store.lastSite||DEFAULT_SITE;
   currentStyle=safeStyle(getProfile().defaults);
   buildPatternGrid();syncUI();loadLogo();loadBackground();updateQueueUI();
+  if(!onboardingDone()&&!getProfile().metaTarget)openOnboarding(0);
 })();

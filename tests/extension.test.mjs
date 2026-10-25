@@ -86,6 +86,8 @@ async function scenario({ userScripts }) {
   }));
   await page.route('**/proxy.php?action=feed*', r => r.fulfill({ json: { source: 'wp', items: [{ id: '7', title: 'Notizia di prova', url: 'https://example.com/n', image: 'https://example.com/n.jpg' }] } }));
   await page.route('**/proxy.php?action=img*', r => r.fulfill({ body: png, contentType: 'image/png' }));
+  // Guida iniziale già vista: qui si prova la pubblicazione.
+  await page.addInitScript(() => localStorage.setItem('storyflow.onboarding.v1', 'done'));
   await page.goto(studioUrl);
   await page.waitForFunction(() => document.getElementById('extStatus').textContent === 'Motore collegato', null, { timeout: 15000 });
   check(`${label} pannello vede l’estensione`, true);
