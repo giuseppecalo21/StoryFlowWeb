@@ -539,21 +539,24 @@
   // "Indietro" vale solo per la storia (o lo stile predefinito) su cui si è lanciato.
   function syncLuckyHistory() {
     if(luckyOwner!==luckyOwnerKey()){luckyHistory.length=0;luckyOwner=luckyOwnerKey();}
-    $('btnLuckyBack').disabled=!luckyHistory.length;
+    // Lo stesso storico vale per il pannello grafica e per il passaggio "I tuoi colori" della guida.
+    $('btnLuckyBack').disabled=$('btnObLuckyBack').disabled=!luckyHistory.length;
   }
-  $('btnLucky').onclick=()=>{
+  function rollLucky() {
     syncLuckyHistory();
     luckyHistory.push(Object.fromEntries(LUCKY_KEYS.map(k=>[k,currentStyle[k]])));
     if(luckyHistory.length>30) luckyHistory.shift();
     currentStyle=safeStyle({...currentStyle,...luckyStyle()});
     syncUI();saveCurrentStory();
-  };
-  $('btnLuckyBack').onclick=()=>{
+  }
+  function undoLucky() {
     syncLuckyHistory();
     if(!luckyHistory.length) return;
     currentStyle=safeStyle({...currentStyle,...luckyHistory.pop()});
     syncUI();saveCurrentStory();
-  };
+  }
+  $('btnLucky').onclick=rollLucky;
+  $('btnLuckyBack').onclick=undoLucky;
 
   function syncUI() {
     const c=currentStyle;
@@ -1473,6 +1476,18 @@
   $('obColor').addEventListener('input',e=>obStyle('brandColor',e.target.value));
   $('obDarkColor').addEventListener('input',e=>obStyle('darkColor',e.target.value));
   $('obPattern').addEventListener('input',e=>obStyle('pattern',e.target.value));
+  // "Mi sento fortunato" anche nella guida: la combinazione scelta diventa lo stile predefinito del sito.
+  async function obLucky(action){
+    action();
+    const p=getProfile();
+    p.defaults=safeStyle({...p.defaults,...Object.fromEntries(LUCKY_KEYS.map(k=>[k,currentStyle[k]]))});persistStore();
+    $('obColor').value=currentStyle.brandColor;$('obDarkColor').value=currentStyle.darkColor;$('obPattern').value=currentStyle.pattern;
+    drawObPreview();
+    // L'anteprima va ridisegnata quando i font scelti sono arrivati.
+    await ensureFonts();drawObPreview();
+  }
+  $('btnObLucky').onclick=()=>obLucky(rollLucky);
+  $('btnObLuckyBack').onclick=()=>obLucky(undoLucky);
   $('btnObMetaLogin').onclick=()=>{
     const fb=$('obMetaFeedback');fb.className='ob-feedback';
     if(isNativeApp()){

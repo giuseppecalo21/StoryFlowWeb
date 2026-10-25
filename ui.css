@@ -199,6 +199,9 @@ button.success { background:#20b49a; border-color:#20b49a; color:#fff; }
 .ob-style { display:grid; grid-template-columns:1fr 216px; gap:18px; align-items:start; }
 .ob-style-controls label:first-child { margin-top:0; }
 .ob-style .color-control { width:100%; height:38px; }
+.ob-lucky { margin-top:16px; padding-top:14px; border-top:1px solid var(--border); }
+.ob-lucky p { color:#8a85a8; font-size:12px; line-height:1.5; margin:0 0 9px; }
+#btnObLuckyBack:disabled { opacity:.45; cursor:default; }
 #obPreview { width:216px; height:384px; border-radius:8px; border:1px solid var(--border); background:#181818; }
 .ob-note { display:flex; flex-direction:column; gap:5px; padding:12px 14px; border-radius:7px; font-size:12.5px; line-height:1.5; margin:4px 0 12px; }
 .ob-note[hidden] { display:none; }

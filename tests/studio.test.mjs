@@ -320,6 +320,21 @@ const browser = await chromium.launch();
   await page.locator('#obColor').evaluate(el => { el.value = '#e63946'; el.dispatchEvent(new Event('input', { bubbles: true })); });
   check('Passo 2: il colore scelto diventa lo stile predefinito del sito', await page.evaluate(() =>
     JSON.parse(localStorage.getItem('storyflow.studio.settings.v2.2')).sites['https://example.com'].defaults.brandColor === '#e63946'));
+  const savedDefaults = () => page.evaluate(() => JSON.parse(localStorage.getItem('storyflow.studio.settings.v2.2')).sites['https://example.com'].defaults);
+  const preview = () => page.locator('#obPreview').evaluate(c => c.toDataURL());
+  check('Passo 2: “Indietro” disattivato prima del primo lancio', await page.locator('#btnObLuckyBack').isDisabled());
+  const previewBefore = await preview();
+  await page.click('#btnObLucky');
+  const lucky = await savedDefaults();
+  check('Passo 2: “Mi sento fortunato” cambia colori e anteprima',
+    (await page.inputValue('#obColor')) === lucky.brandColor.toLowerCase() && lucky.brandColor.toLowerCase() !== '#e63946'
+    && (await page.inputValue('#obPattern')) === lucky.pattern && (await preview()) !== previewBefore);
+  check('Passo 2: la combinazione a sorpresa diventa lo stile predefinito, leggibile',
+    contrast(lucky.darkColor, '#ffffff') >= 4.5 && contrast(lucky.darkColor, lucky.brandColor) >= 3);
+  await page.click('#btnObLuckyBack');
+  check('Passo 2: “Indietro” torna ai colori scelti a mano',
+    (await savedDefaults()).brandColor === '#e63946' && (await page.inputValue('#obColor')) === '#e63946');
+  await page.click('#btnObLucky');
   if (shots) await page.screenshot({ path: join(shots, 'onboarding-2-colori.png') });
   await page.click('#btnObNext');
   check('Passo 3: rassicurazione su nome utente e password', (await page.locator('.ob-safe').textContent()).includes('non vede e non salva né il nome utente né la password'));
