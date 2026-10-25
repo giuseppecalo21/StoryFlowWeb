@@ -1,4 +1,4 @@
-/* StoryFlow Studio 3.0.0 — Supporto Desktop + Mobile Touch + App Native Bridge */
+/* StoryFlow Studio 4.1.0 — Supporto Desktop + Mobile Touch + App Native Bridge */
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
@@ -1153,7 +1153,7 @@
     try {
       if(typeof window.StoryFlowNative.getEngineInfo!=='function')return;
       const info=JSON.parse(window.StoryFlowNative.getEngineInfo()||'{}');
-      if(info.version)$('versionTag').textContent=`VERSIONE 4.0 · MOTORE ${info.version}`;
+      if(info.version)$('versionTag').textContent=`VERSIONE 4.1 · MOTORE ${info.version}`;
     } catch(_) {}
   }
 
