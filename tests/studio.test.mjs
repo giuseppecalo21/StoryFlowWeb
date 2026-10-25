@@ -37,6 +37,24 @@ const AI_TITLES = ['Vent’anni di carriera, poi l’annuncio che nessuno si asp
 let failures = 0;
 const check = (name, cond, detail = '') => { console.log(`${cond ? 'OK  ' : 'FAIL'} ${name}${detail ? ' — ' + detail : ''}`); if (!cond) failures++; };
 
+// Contrasto WCAG tra due colori #rrggbb.
+const luminance = hex => {
+  const n = parseInt(hex.slice(1), 16), lin = v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; };
+  return .2126 * lin(n >> 16) + .7152 * lin(n >> 8 & 255) + .0722 * lin(n & 255);
+};
+const contrast = (a, b) => { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+
+// Le palette di “Mi sento fortunato” devono rispettare tutte le soglie di leggibilità.
+{
+  const source = readFileSync(join(root, 'studio.js'), 'utf8');
+  const block = source.slice(source.indexOf('const LUCKY_PALETTES'), source.indexOf('const LUCKY_CONTRAST'));
+  const palettes = [...block.matchAll(/\['([^']+)','(#[0-9A-Fa-f]{6})','(#[0-9A-Fa-f]{6})'\]/g)].map(m => m.slice(1));
+  const weak = palettes.filter(([, dark, brand]) => contrast(dark, '#FFFFFF') < 4.5 || contrast(dark, brand) < 3);
+  check('Palette a sorpresa: almeno cento abbinamenti', palettes.length >= 100, `${palettes.length}`);
+  check('Palette a sorpresa: tutte leggibili', weak.length === 0, weak.map(p => p[0]).join(', '));
+  check('Palette a sorpresa: nessun doppione', new Set(palettes.map(p => p[1] + p[2])).size === palettes.length);
+}
+
 /**
  * gemini: 'fallback' (primo modello al limite d'uso, secondo sovraccarico, terzo risponde),
  *         'hang' (nessuna risposta), 'quota' (tutti al limite d'uso).
@@ -171,6 +189,31 @@ const browser = await chromium.launch();
   await page.click('#btnToggleEditor');
   check('Il pannello grafica si apre e il pulsante dice “Chiudi”', await page.locator('#advancedEditor').isVisible()
     && (await page.locator('#editorToggleLabel').textContent()) === 'Chiudi');
+
+  const look = () => page.evaluate(() => Object.fromEntries(
+    ['cfgColor', 'cfgDarkColor', 'cfgPattern', 'cfgTitleFont', 'cfgCtaFont', 'cfgCtaText', 'inpTitle'].map(id => [id, document.getElementById(id).value])));
+  check('“Indietro” disattivato prima del primo lancio', await page.locator('#btnLuckyBack').isDisabled());
+  const initial = await look();
+  const seen = [];
+  for (let i = 0; i < 25; i++) { await page.click('#btnLucky'); seen.push(await look()); }
+  const pairs = new Set(seen.map(s => s.cfgDarkColor + s.cfgColor));
+  check('Mi sento fortunato: ogni lancio cambia combinazione', pairs.size === 25, `${pairs.size} diverse su 25`);
+  check('Mi sento fortunato: contrasto sempre buono',
+    seen.every(s => contrast(s.cfgDarkColor, '#ffffff') >= 4.5 && contrast(s.cfgDarkColor, s.cfgColor) >= 3));
+  check('Mi sento fortunato: cambia anche font e pattern',
+    new Set(seen.map(s => s.cfgTitleFont)).size > 3 && new Set(seen.map(s => s.cfgPattern)).size > 3);
+  check('Mi sento fortunato: titolo e testi restano quelli scelti',
+    seen.every(s => s.inpTitle === initial.inpTitle && s.cfgCtaText === initial.cfgCtaText));
+  await page.click('#btnLuckyBack');
+  const back = await look();
+  check('“Indietro” torna alla combinazione precedente', back.cfgColor === seen[23].cfgColor && back.cfgTitleFont === seen[23].cfgTitleFont);
+  for (let i = 0; i < 24; i++) await page.click('#btnLuckyBack');
+  const start = await look();
+  check('“Indietro” arriva fino allo stile di partenza', start.cfgColor === initial.cfgColor && start.cfgPattern === initial.cfgPattern
+    && await page.locator('#btnLuckyBack').isDisabled());
+  if (shots) { await page.click('#btnLucky'); await page.screenshot({ path: join(shots, 'fortunato.png') }); }
+  await page.locator('.news-card').nth(1).click();
+  check('Cambiando notizia lo storico di “Indietro” riparte', await page.locator('#btnLuckyBack').isDisabled());
   check('Nessun errore JavaScript', errors.length === 0, errors.join(' | '));
   await page.close();
 }

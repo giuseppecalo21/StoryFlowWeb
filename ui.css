@@ -86,6 +86,11 @@ button.success { background:#20b49a; border-color:#20b49a; color:#fff; }
 .background-preview-line span,.logo-line span { flex:1; font-size:10px; color:#9094a4; }
 .preset-actions { display:flex; flex-wrap:wrap; gap:6px; }
 .preset-actions button { flex:1; min-width:130px; font-size:10px; }
+.lucky-box { background:#f8f6ff; border-color:#e2dcfd; }
+.lucky-note { color:#8a85a8; font-size:10px; line-height:1.5; margin:0 0 9px; }
+.lucky-actions { display:flex; gap:6px; }
+.lucky-actions .primary { flex:1; padding:10px 12px; font-size:12px; }
+#btnLuckyBack:disabled { opacity:.45; cursor:default; }
 
 .editor-toggle { display:flex; align-items:center; gap:12px; width:100%; background:#f6f4ff; border:1px dashed #a996fa; border-radius:7px; padding:12px 14px; text-align:left; color:#35394d; margin-bottom:13px; transition:.15s; }
 .editor-toggle:hover { background:#efebff; border-style:solid; }

@@ -70,6 +70,75 @@
     ['pixels','Pixel'],['zigzag','Zig zag'],['mesh','Maglia'],['rays','Raggi']
   ];
   const PATTERN_IDS = new Set(PATTERNS.map(a => a[0]));
+  // "Mi sento fortunato": abbinamenti di colori collaudati (squadre, scuderie, classici del design),
+  // usati come preset nascosti. Formato: [nome, colore aree scure, colore del brand].
+  // Ogni coppia rispetta LUCKY_CONTRAST: titolo bianco leggibile sul colore scuro e barra CTA leggibile.
+  const LUCKY_PALETTES = [
+    // NBA
+    ['Lakers','#552583','#FDB927'],['Celtics','#007A33','#FFFFFF'],['Bulls','#000000','#CE1141'],
+    ['Warriors','#1D428A','#FFC72C'],['Suns','#1D1160','#E56020'],['Heat','#000000','#F9A01B'],
+    ['Spurs','#000000','#C4CED4'],['Nuggets','#0E2240','#FEC524'],['Bucks','#00471B','#EEE1C6'],
+    ['Jazz','#002B5C','#F9A01B'],['Knicks','#0B2240','#F58426'],['Thunder','#002D62','#EF3B24'],
+    ['Magic','#000000','#0077C0'],['Cavaliers','#860038','#FDBB30'],
+    // NFL
+    ['Steelers','#101820','#FFB612'],['Packers','#203731','#FFB612'],['Raiders','#000000','#A5ACAF'],
+    ['Bears','#0B162A','#C83803'],['Broncos','#002244','#FB4F14'],['Vikings','#4F2683','#FFC62F'],
+    ['Seahawks','#002244','#69BE28'],['Cowboys','#041E42','#869397'],['Bengals','#000000','#FB4F14'],
+    ['Ravens','#241773','#9E7C0C'],['Saints','#101820','#D3BC8D'],['Patriots','#002244','#B0B7BC'],
+    ['Chargers','#002A5E','#FFC20E'],['Rams','#003594','#FFD100'],
+    // MLB
+    ['Yankees','#0C2340','#FFFFFF'],['Dodgers','#005A9C','#FFFFFF'],['Giants','#27251F','#FD5A1E'],
+    ['Tigers','#0C2340','#FA4616'],['Orioles','#000000','#DF4601'],['Padres','#2F241D','#FFC425'],
+    ['Astros','#002D62','#EB6E1F'],['Athletics','#003831','#EFB21E'],
+    // NHL
+    ['Bruins','#000000','#FFB81C'],['Penguins','#000000','#FCB514'],['Red Wings','#CE1126','#FFFFFF'],
+    ['Blackhawks','#000000','#CF0A2C'],['Kings','#111111','#A2AAAD'],['Predators','#041E42','#FFB81C'],
+    ['Sabres','#003087','#FFB81C'],
+    // Calcio italiano
+    ['Juventus','#000000','#FFFFFF'],['Inter','#000000','#1E71B8'],['Milan','#000000','#FB090B'],
+    ['Roma','#8E1F2F','#F0BC42'],['Lazio','#15366F','#87D8F7'],['Napoli','#0B2D5B','#12A0D7'],
+    ['Fiorentina','#482E92','#FFFFFF'],['Torino','#8A1E03','#FFFFFF'],['Atalanta','#1E1E1E','#2A7FD0'],
+    ['Parma','#1B4094','#FFD200'],['Verona','#002F6C','#FFD100'],['Palermo','#111111','#F5A3C7'],
+    ['Venezia','#111111','#F08A1C'],['Bologna','#1A2F48','#E03A3E'],['Genoa','#002350','#E2363F'],
+    // Calcio estero
+    ['Aston Villa','#670E36','#95BFE5'],['West Ham','#7A263A','#1BB1E7'],['Barcellona','#A50044','#EDBB00'],
+    ['Real Madrid','#00529F','#FEBE10'],['Liverpool','#C8102E','#F6EB61'],['Manchester United','#000000','#DA291C'],
+    ['Arsenal','#DB0007','#FFFFFF'],['Chelsea','#034694','#FFFFFF'],['Manchester City','#1C2C5B','#6CABDD'],
+    ['Tottenham','#132257','#FFFFFF'],['Newcastle','#241F20','#F1F1F1'],['Borussia Dortmund','#000000','#FDE100'],
+    ['Bayern','#DC052D','#FFFFFF'],['Ajax','#D2122E','#FFFFFF'],['PSG','#004170','#FFFFFF'],
+    ['Celtic','#018749','#FFFFFF'],['Boca Juniors','#103F79','#F3B229'],['Porto','#00428C','#FFFFFF'],
+    ['Sporting','#00704A','#FFFFFF'],['Galatasaray','#A90432','#FDB912'],['Fenerbahce','#002D72','#FFED00'],
+    ['Wolves','#231F20','#FDB913'],['Leeds','#1D428A','#FFCD00'],
+    // Nazionali
+    ['Italia','#0047AB','#FFFFFF'],['Brasile','#002776','#FFDF00'],['Olanda','#1B2A5C','#F36C21'],
+    ['Germania','#000000','#FFCE00'],['Francia','#002395','#FFFFFF'],['Spagna','#AA151B','#F1BF00'],
+    ['Messico','#006847','#FFFFFF'],['Belgio','#000000','#FAE042'],['Svezia','#006AA7','#FECC00'],
+    // Motori
+    ['Ferrari','#C00000','#FFF200'],['John Player Special','#000000','#C9A646'],['McLaren','#111111','#FF8000'],
+    ['Mercedes','#000000','#00D2BE'],['Aston Martin','#00594F','#CEDC00'],['Lotus','#004225','#FFD700'],
+    // Wrestling
+    ['Raw','#0B0B0B','#E3000F'],['SmackDown','#0A1E3F','#3FA9F5'],['NXT','#111111','#F2C500'],
+    ['nWo','#000000','#EDEDED'],['AEW','#0A0A0A','#C9A44C'],
+    // Classici del design
+    ['Bianco e nero','#111111','#FFFFFF'],['Blu notte e oro','#0A1F44','#D4AF37'],['Bordeaux e crema','#4A0E1E','#F2E3C6'],
+    ['Bosco e senape','#1F3B2D','#E1AD01'],['Mezzanotte e corallo','#101935','#FF6F59'],['Antracite e lime','#222222','#B5E61D'],
+    ['Prugna e pesca','#3E1F47','#FFB997'],['Petrolio e ambra','#08343E','#FFB000'],['Synthwave','#1A0B2E','#FF2E97'],
+    ['Cyberpunk','#0D0221','#00F0FF'],['Terminale','#0D0D0D','#00FF41'],['Arcade','#000000','#FFE600'],
+    ['Svizzero','#111111','#FF2A1A'],['Tiffany','#1A1A1A','#81D8D0'],['Carta di giornale','#1E1E1E','#F4E4C1'],
+    ['Oliva e sabbia','#3B3F24','#E8D5A9'],['Vino e rosa','#3D0C11','#F4A6B7'],['Navy e mandarino','#14213D','#FCA311'],
+    ['Grafite e menta','#2C3539','#98FF98'],['Oceano','#03045E','#90E0EF'],['Tramonto','#2D1E2F','#F7B32B'],
+    ['Cioccolato e menta','#3E2723','#A5D6A7'],['Arancio internazionale','#111111','#FF4F00'],['Militare','#283618','#DDA15E'],
+    ['Viola reale e argento','#3B1E54','#D4D4D4'],['Cobalto e limone','#0B3D91','#FFF44F'],['Smeraldo e oro','#014D3A','#E6BE5A'],
+    ['Espresso e caramello','#2B1B17','#D9A066']
+  ];
+  const LUCKY_CONTRAST = { title:4.5, cta:3 };
+  // Font stretti e font larghi: titolo e CTA usano lo stesso font oppure uno per famiglia.
+  const CONDENSED_FONTS = [
+    'Big Shoulders Display','Roboto Condensed','Oswald','Anton','Bebas Neue','Barlow Condensed',
+    'Archivo Narrow','Teko','Saira Condensed','IBM Plex Sans Condensed','Fjalla One','PT Sans Narrow','League Gothic'
+  ];
+  // Voltaire esiste solo nel peso normale: troppo leggero per una combinazione casuale.
+  const WIDE_FONTS = FONTS.filter(f => !CONDENSED_FONTS.includes(f) && f!=='Voltaire');
   const DEFAULT_SITE = 'https://wordpress.org/news';
   const blank = () => ({
     brandColor:'#6047e8', darkColor:'#181818', pattern:'halftone',
@@ -81,6 +150,12 @@
   const copy = x => JSON.parse(JSON.stringify(x));
   const clamp = (n,a,b) => Math.min(b,Math.max(a,n));
   const safeHex = (v,fallback) => /^#[0-9a-fA-F]{6}$/.test(v||'') ? v : fallback;
+  // Contrasto WCAG tra due colori #rrggbb.
+  const luminance = hex => {
+    const n=parseInt(hex.slice(1),16), lin=v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4;};
+    return .2126*lin(n>>16)+.7152*lin(n>>8&255)+.0722*lin(n&255);
+  };
+  const contrast = (a,b) => { const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05); };
   const normalizeSite = s => {
     try { const u = new URL(s.trim()); return u.protocol + '//' + u.hostname.toLowerCase() + u.pathname.replace(/\/+$/,''); }
     catch { return DEFAULT_SITE; }
@@ -355,16 +430,72 @@
 
     if(includeGuide) {
       const targetY=Math.round(.88*H);
-      ctx.save();ctx.strokeStyle='rgba(255,255,255,.88)';ctx.lineWidth=3;ctx.setLineDash([10,8]);
+      // Sui colori del brand molto chiari la guida diventa scura, altrimenti non si vedrebbe.
+      const guide=luminance(c.brandColor)>.5?'rgba(0,0,0,.72)':'rgba(255,255,255,.88)';
+      ctx.save();ctx.strokeStyle=guide;ctx.lineWidth=3;ctx.setLineDash([10,8]);
       ctx.strokeRect(W/2-290,targetY-48,580,96);ctx.setLineDash([]);
-      ctx.fillStyle='#fff';ctx.font=cssFont('Montserrat',25);ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle=guide;ctx.font=cssFont('Montserrat',25);ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillText('🔗 '+(c.stickerText||hostnameLabel())+' (Area Sticker 88%)',W/2,targetY,540);
       ctx.restore();
     }
   }
 
+  // --- MI SENTO FORTUNATO ---
+  // Combinazione a sorpresa ma sensata: palette collaudata, font abbinati, pattern diverso dal precedente.
+  // Testi, logo, sfondo caricato e inquadratura restano quelli scelti dall'utente.
+  const LUCKY_KEYS = ['brandColor','darkColor','pattern','titleFont','ctaFont','titleWeight','ctaWeight','titleSize'];
+  const pick = list => list[Math.floor(Math.random()*list.length)];
+  // Le ultime palette uscite (metà dell'elenco) non si ripresentano: lanci di fila danno sempre abbinamenti nuovi.
+  const recentPalettes=[], luckyHistory=[];
+  let luckyOwner='';
+  const luckyOwnerKey = () => siteKey()+'|'+(currentArticle?String(currentArticle.id):'');
+  function luckyColors() {
+    const index=pick(LUCKY_PALETTES.map((_,i)=>i).filter(i=>!recentPalettes.includes(i)));
+    recentPalettes.push(index);
+    if(recentPalettes.length>LUCKY_PALETTES.length/2) recentPalettes.shift();
+    const [,dark,brand]=LUCKY_PALETTES[index];
+    // Se anche il colore del brand regge il titolo bianco, ogni tanto i due ruoli si scambiano.
+    const swap=contrast(brand,'#FFFFFF')>=LUCKY_CONTRAST.title && Math.random()<.35;
+    return swap?{darkColor:brand,brandColor:dark}:{darkColor:dark,brandColor:brand};
+  }
+  const heavyWeight = font => {
+    const weights=availableWeights(font), heavy=weights.filter(w=>w>=700);
+    return heavy.length?pick(heavy):weights[weights.length-1];
+  };
+  function luckyStyle() {
+    const condensed=Math.random()<.5;
+    const titleFont=pick(condensed?CONDENSED_FONTS:WIDE_FONTS);
+    const ctaFont=Math.random()<.5?titleFont:pick(condensed?WIDE_FONTS:CONDENSED_FONTS);
+    return {
+      ...luckyColors(),
+      pattern:pick(PATTERNS.map(p=>p[0]).filter(id=>id!==currentStyle.pattern)),
+      titleFont, ctaFont, titleWeight:heavyWeight(titleFont), ctaWeight:heavyWeight(ctaFont),
+      // I font stretti reggono un corpo più grande a parità di righe.
+      titleSize:condensed?68+Math.floor(Math.random()*13):56+Math.floor(Math.random()*11)
+    };
+  }
+  // "Indietro" vale solo per la storia (o lo stile predefinito) su cui si è lanciato.
+  function syncLuckyHistory() {
+    if(luckyOwner!==luckyOwnerKey()){luckyHistory.length=0;luckyOwner=luckyOwnerKey();}
+    $('btnLuckyBack').disabled=!luckyHistory.length;
+  }
+  $('btnLucky').onclick=()=>{
+    syncLuckyHistory();
+    luckyHistory.push(Object.fromEntries(LUCKY_KEYS.map(k=>[k,currentStyle[k]])));
+    if(luckyHistory.length>30) luckyHistory.shift();
+    currentStyle=safeStyle({...currentStyle,...luckyStyle()});
+    syncUI();saveCurrentStory();
+  };
+  $('btnLuckyBack').onclick=()=>{
+    syncLuckyHistory();
+    if(!luckyHistory.length) return;
+    currentStyle=safeStyle({...currentStyle,...luckyHistory.pop()});
+    syncUI();saveCurrentStory();
+  };
+
   function syncUI() {
     const c=currentStyle;
+    syncLuckyHistory();
     cfgColor.value=c.brandColor;cfgDarkColor.value=c.darkColor;cfgPattern.value=c.pattern;
     cfgBackgroundEnabled.checked=c.backgroundEnabled;
     cfgBackgroundTint.value=c.backgroundTint;$('lblBackgroundTint').textContent=c.backgroundTint+'%';
