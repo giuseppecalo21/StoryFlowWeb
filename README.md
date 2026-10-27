@@ -65,7 +65,7 @@ npm run dist:win     # installer Windows (.exe) in desktop/dist
 npm run dist:mac     # app Mac (.dmg): va compilata su un Mac
 ```
 
-- Indirizzi del pannello e del motore: `desktop/config.json`. Per provare un pannello locale: `STORYFLOW_STUDIO_URL=http://localhost:8000/index.html npm start`.
+- Indirizzi del pannello e del motore: `desktop/config.json`. Con `showMetaWhilePublishing: false` (predefinito) durante la coda si vede solo la schermata di pubblicazione del pannello e la vista Meta non si può aprire; con `true` l'app mostra Meta mentre lavora. Per provare un pannello locale: `STORYFLOW_STUDIO_URL=http://localhost:8000/index.html npm start`.
 - **Firma del codice**: senza un certificato di firma Windows mostra l'avviso SmartScreen e macOS blocca l'app non notarizzata. Per la vendita servono un certificato di firma del codice per Windows e un account Apple Developer.
 - `npm run check` controlla il codice con le definizioni ufficiali di Electron.
 

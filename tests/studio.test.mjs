@@ -310,6 +310,67 @@ const browser = await chromium.launch();
   await page.close();
 }
 {
+  // Schermata di pubblicazione su telefono: storia in lavorazione, niente chiusura, stop dopo la storia attuale.
+  const { page, errors } = await openStudio(browser, { desktop: true, viewport: { width: 390, height: 844 } });
+  await page.evaluate(() => {
+    window.__running = false; window.__stop = [];
+    Object.assign(window.StoryFlowNative, {
+      getPlatform: () => 'android', isQueueRunning: () => window.__running,
+      startQueue: json => { window.__started = JSON.parse(json); window.__running = true; },
+      setStopAfterCurrent: on => { window.__stop.push(on); }
+    });
+  });
+  await page.click('#btnFetch');
+  await page.waitForSelector('.news-card');
+  for (let i = 0; i < 3; i++) await page.locator('.news-card').nth(i).locator('.quick-queue').click();
+  await page.waitForFunction(() => document.getElementById('queueCount').textContent === '3');
+  // Il nome della pagina segue il sito caricato: lo si imposta dopo aver preparato le storie.
+  await page.evaluate(() => { const f = document.getElementById('cfgMetaTarget'); f.value = 'La Mia Pagina'; f.dispatchEvent(new Event('input')); });
+  await page.evaluate(() => document.getElementById('btnPublishQueue').click());
+  const started = await page.evaluate(() => window.__started);
+  check('Pubblicazione: coda inviata all’app', started?.dryRun === false && started.items.length === 3);
+  check('Pubblicazione: schermata a tutto schermo al posto della finestra', await page.locator('#publishStage').isVisible()
+    && await page.locator('#publishModal').isHidden());
+  check('Pubblicazione: nessun pulsante per chiudere la schermata', await page.locator('#btnStageClose').isHidden()
+    && await page.locator('#publishStage button:visible').count() === 1);
+  const ids = started.items.map(it => String(it.id));
+  await page.evaluate(id => window.__onStoryFlowNativeProgress({ stage: 'image', index: 1, total: 3, itemId: id, message: 'Caricamento immagine', log: [] }), ids[1]);
+  check('Pubblicazione: anteprima della storia in lavorazione', await page.evaluate(src => document.getElementById('psImage').src === src, started.items[1].dataUrl));
+  check('Pubblicazione: posizione presa dalla storia, non dal contatore del motore', (await page.locator('#psCount').textContent()) === 'Storia 2 di 3');
+  check('Pubblicazione: titolo della storia', (await page.locator('#psTitle').textContent()) === started.items[1].title);
+  check('Pubblicazione: miniature con la prima già fatta', await page.evaluate(() =>
+    [...document.querySelectorAll('#psStrip span')].map(s => s.className).join(',') === 'done,current,'));
+  check('Pubblicazione: la schermata scansiona la storia', await page.evaluate(() => getComputedStyle(document.querySelector('.ps-scan')).animationName === 'ps-scan'));
+  check('Pubblicazione: avanzamento senza dettagli tecnici', (await page.locator('#psStatus').textContent()) === 'Caricamento della grafica…');
+  if (shots) { await page.waitForTimeout(700); await page.screenshot({ path: join(shots, 'pubblicazione-in-corso.png') }); }
+  await page.click('#btnStopAfter');
+  check('Stop: richiesta passata all’app', await page.evaluate(() => window.__stop.join() === 'true'));
+  check('Stop: spiegazione e pulsante per annullare', (await page.locator('#psNote').textContent()).includes('l’ultima resta in coda')
+    && (await page.locator('#btnStopAfter').textContent()) === 'Continua con tutta la coda');
+  if (shots) await page.screenshot({ path: join(shots, 'pubblicazione-stop.png') });
+  await page.click('#btnStopAfter');
+  await page.click('#btnStopAfter');
+  check('Stop: si può annullare e richiedere di nuovo', await page.evaluate(() => window.__stop.join() === 'true,false,true'));
+  await page.evaluate(id => { window.__running = false; window.__onStoryFlowNativeProgress({ stage: 'stopped', index: 2, total: 3, ok: 2, err: 0, remainingIds: [id], message: 'Coda fermata su richiesta' }); }, ids[2]);
+  check('Stop: schermata chiusa, esito mostrato', await page.locator('#publishStage').isHidden() && await page.locator('#publishModal').isVisible());
+  check('Stop: in coda resta solo la storia non pubblicata', (await page.locator('#queueCount').textContent()) === '1'
+    && (await page.locator('#queueList .q-title').textContent()) === started.items[2].title);
+  check('Stop: riepilogo chiaro', (await page.locator('#publishOutcomeDesc').textContent()) === 'Pubblicate 2 storie. L’altra storia resta in coda, pronta a ripartire.');
+  check('Stop: si può ripartire', await page.locator('#btnPublishQueue').isEnabled());
+  check('Stop: avanzamento fermo alle storie lavorate', await page.evaluate(() => document.getElementById('progressFill').style.width === '67%'));
+  if (shots) await page.screenshot({ path: join(shots, 'pubblicazione-in-pausa.png') });
+  await page.click('#btnOutcomeDone');
+  // L'app chiude la coda senza avvisare il pannello: la schermata non resta bloccata.
+  await page.evaluate(() => document.getElementById('btnPublishQueue').click());
+  check('Ripartenza: schermata di nuovo aperta', await page.locator('#publishStage').isVisible());
+  check('Ripartenza: ultima storia, niente pulsante di stop', await page.locator('#btnStopAfter').isHidden());
+  await page.evaluate(() => { window.__running = false; });
+  await page.waitForSelector('#publishStage', { state: 'hidden', timeout: 10000 });
+  check('App ferma senza avviso: schermata chiusa da sola', await page.locator('#publishModal').isVisible());
+  check('Nessun errore JavaScript (schermata di pubblicazione)', errors.length === 0, errors.join(' | '));
+  await page.close();
+}
+{
   // Primo avvio nel browser: la guida parte da sola e accompagna nei quattro passaggi.
   const { page, errors } = await openStudio(browser, { onboarding: true });
   check('Primo avvio: si apre la guida', await page.locator('#onboardingModal').isVisible() && (await page.locator('#obCount').textContent()) === '1 di 4');

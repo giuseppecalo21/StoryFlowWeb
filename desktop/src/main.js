@@ -4,7 +4,7 @@
 // tramite window.StoryFlowNative, la stessa interfaccia dell'app Android.
 'use strict';
 
-const { app, BaseWindow, WebContentsView, ipcMain, session, shell, net, Menu } = require('electron');
+const { app, BaseWindow, WebContentsView, ipcMain, session, shell, net, Menu, powerSaveBlocker } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { EngineManager } = require('./engine');
@@ -41,7 +41,8 @@ if (!app.requestSingleInstanceLock()) app.quit();
 let front = 'studio';
 let metaLoggedIn = false;
 let progressText = '';
-const run = { running: false, state: null, lastProgressAt: 0, watchdog: null };
+// stopAfter: "Ferma la coda dopo questa storia"; screenLock: id di powerSaveBlocker, lo schermo resta acceso durante la coda.
+const run = { running: false, state: null, lastProgressAt: 0, watchdog: null, stopAfter: false, screenLock: -1 };
 // Onboarding: scelta o verifica del nome della pagina nella vista Meta (mai insieme a una coda).
 const setup = { busy: false };
 /** @type {string} */ let metaSetupCode = '';
@@ -73,6 +74,8 @@ function layout() {
 }
 
 function showView(name) {
+  // Durante la coda la vista Meta resta dietro la schermata di pubblicazione del pannello.
+  if (name === 'meta' && run.running && !config.showMetaWhilePublishing) return;
   front = name === 'meta' ? 'meta' : 'studio';
   // Aggiungere di nuovo una vista già presente la porta in primo piano.
   win.contentView.addChildView(front === 'meta' ? metaView : studioView);
@@ -211,7 +214,9 @@ async function startQueue(payloadJson) {
   const dryRun = Boolean(payload.dryRun);
 
   run.running = true;
+  run.stopAfter = false;
   run.lastProgressAt = Date.now();
+  if (run.screenLock < 0) run.screenLock = powerSaveBlocker.start('prevent-display-sleep');
   progressText = 'Avvio pubblicazione…';
   pushToolbarState();
   // Prima di partire controlla se c'è un motore più recente (massimo 5 secondi di attesa).
@@ -223,8 +228,7 @@ async function startQueue(payloadJson) {
   };
   loadComposer(dryRun);
   startWatchdog();
-  if (config.showMetaWhilePublishing) showView('meta');
-  pushToolbarState();
+  showView(config.showMetaWhilePublishing ? 'meta' : 'studio');
 }
 
 function saveReport() {
@@ -242,6 +246,8 @@ async function detachDebugger() {
 function finishRun() {
   if (!run.running) return;
   run.running = false;
+  run.stopAfter = false;
+  if (run.screenLock >= 0) { powerSaveBlocker.stop(run.screenLock); run.screenLock = -1; }
   stopWatchdog();
   saveReport();
   void detachDebugger();
@@ -262,6 +268,9 @@ function failRun(message) {
 
 function forwardProgress(progress) {
   run.lastProgressAt = Date.now();
+  // La storia in lavorazione è la prima della coda salvata dal motore: il pannello ne mostra l'anteprima.
+  const current = run.state?.items?.[0]?.id;
+  if (current != null && progress.itemId == null) progress.itemId = String(current).slice(0, 100);
   progressText = String(progress.message || progress.stage || '').slice(0, 160);
   pushToolbarState();
   // Ri-serializzato: alla pagina del pannello arriva solo JSON puro.
@@ -269,6 +278,25 @@ function forwardProgress(progress) {
   studioView.webContents
     .executeJavaScript(`window.__onStoryFlowNativeProgress && window.__onStoryFlowNativeProgress(${json});`)
     .catch(() => {});
+}
+
+// Il motore chiama nextStory sia per la storia successiva sia per riprovare quella attuale
+// (un nuovo tentativo ha _retries sulla prima storia): ci si ferma solo nel primo caso.
+function nextStory(dryRun) {
+  const st = run.state;
+  if (run.stopAfter && st && !(Number(st.items?.[0]?._retries) > 0)) {
+    const remainingIds = (Array.isArray(st.items) ? st.items : []).map(it => String(it?.id ?? '').slice(0, 100)).filter(Boolean);
+    if (Array.isArray(st.log)) st.log.push(`Coda fermata dall'utente: ${remainingIds.length} storie restano in coda`);
+    const total = Number(st.total) || (Number(st.done) || 0) + remainingIds.length;
+    forwardProgress({
+      stage: 'stopped', index: Math.min(Math.max(1, Number(st.done) || 1), Math.max(1, total)), total,
+      dryRun: Boolean(st.dryRun), ok: Number(st.ok) || 0, err: Number(st.err) || 0, remainingIds,
+      message: 'Coda fermata su richiesta'
+    });
+    finishRun();
+    return;
+  }
+  loadComposer(dryRun);
 }
 
 function lastReport() {
@@ -405,6 +433,7 @@ function registerIpc() {
   ipcMain.on('sf:getLastReport', e => { e.returnValue = fromStudio(e) ? lastReport() : JSON.stringify({ available: false }); });
   ipcMain.on('sf:getEngineInfo', e => { e.returnValue = JSON.stringify(engine.info()); });
   ipcMain.on('sf:isQueueRunning', e => { e.returnValue = (fromStudio(e) || fromMeta(e)) && run.running; });
+  ipcMain.on('sf:setStopAfterCurrent', (e, stop) => { if (fromStudio(e)) run.stopAfter = Boolean(stop) && run.running; });
   ipcMain.handle('sf:checkEngine', async e => {
     if (!fromStudio(e) && !fromToolbar(e)) return null;
     const res = await engine.checkForUpdate();
@@ -430,7 +459,7 @@ function registerIpc() {
     if (!fromMeta(e) || !run.running) return false;
     try { await trustedDrag(sx, sy, ex, ey); return true; } catch (_) { return false; }
   });
-  ipcMain.on('sf:nextStory', (e, dryRun) => { if (fromMeta(e) && run.running) loadComposer(Boolean(dryRun)); });
+  ipcMain.on('sf:nextStory', (e, dryRun) => { if (fromMeta(e) && run.running) nextStory(Boolean(dryRun)); });
   ipcMain.on('sf:finishQueue', e => { if (fromMeta(e)) finishRun(); });
 
   // Barra superiore

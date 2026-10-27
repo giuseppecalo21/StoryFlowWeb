@@ -175,6 +175,8 @@ function handleEngineMessage(msg, sender, sendResponse) {
         log:Array.isArray(msg.log)?msg.log.slice(-12).map(l=>String(l).slice(0,800)):[],
         reqId:sf_state?.reqId||''
       };
+      // La storia in lavorazione è la prima della coda salvata dal motore: il pannello ne mostra l'anteprima.
+      if (sf_state?.items?.[0]?.id != null) progress.itemId = String(sf_state.items[0].id).slice(0,100);
       chrome.tabs.sendMessage(sf_dashboardTab,{cmd:'SF_PROGRESS',progress},()=>{ void chrome.runtime.lastError; });
     });
     return false;

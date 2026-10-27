@@ -11,8 +11,10 @@ La guida in 4 passaggi e la scelta del nome della pagina sono pronte (vedi READM
 ### Pulsante "Resetta tutto e ricomincia"
 Dopo un errore: azzera coda, stato della pubblicazione e registro, riporta l'app al pannello e permette di riprovare da zero senza chiudere e riaprire.
 
-### Android – schermo acceso durante la coda
-Durante la pubblicazione tenere lo schermo acceso, come quando si guarda un video (`FLAG_KEEP_SCREEN_ON`), e toglierlo a fine coda o in caso di errore.
+### Schermata di pubblicazione: prova reale
+Durante la coda il pannello mostra la storia in lavorazione con una scansione animata, senza modo di chiuderla, e lo schermo resta acceso; "Ferma la coda dopo questa storia" lascia in coda solo le storie non ancora lavorate. Prima di distribuirla:
+- **Android** (la parte Kotlin non è stata compilata qui): compilare e provare su un telefono vero schermo acceso, tasto Indietro bloccato durante la coda, stop dopo la storia attuale e chiusura automatica dopo 4 minuti senza avanzamenti.
+- **App desktop**: ora la vista Meta resta nascosta durante la coda (`showMetaWhilePublishing: false` in `desktop/config.json`). Verificare con un account vero che i clic e il trascinamento dell'adesivo funzionino anche con la vista Meta dietro al pannello; se non funzionano, rimettere `true`.
 
 ## Da ricordare
 - **Android – piano B**: pulsante "Condividi su Instagram" che passa la grafica creata all'app Instagram con l'intent ufficiale per le storie, per quando l'automazione non è disponibile. L'adesivo link andrà aggiunto a mano dall'utente.

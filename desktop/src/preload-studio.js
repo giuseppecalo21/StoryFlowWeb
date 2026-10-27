@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('StoryFlowNative', {
   getPlatform: () => 'desktop',
   startQueue: json => ipcRenderer.send('sf:startQueue', String(json)),
   isQueueRunning: () => ipcRenderer.sendSync('sf:isQueueRunning'),
+  setStopAfterCurrent: stop => ipcRenderer.send('sf:setStopAfterCurrent', Boolean(stop)),
   openMetaLogin: () => ipcRenderer.send('sf:openMetaLogin'),
   pickMetaTarget: () => ipcRenderer.invoke('sf:pickMetaTarget'),
   verifyMetaTarget: text => ipcRenderer.invoke('sf:verifyMetaTarget', String(text)),
