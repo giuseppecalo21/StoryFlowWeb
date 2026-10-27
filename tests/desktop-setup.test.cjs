@@ -11,10 +11,12 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const TYPES = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 const MOCK = `<!doctype html><html lang="it"><body style="font-family:sans-serif;padding:120px 40px">
-  <div>Pubblica su</div><div id="acc"><span id="page">Zona Prova</span> e zona_prova</div>
+  <div>Pubblica su</div><div id="acc"><span id="page">Zona Prova</span> e zona_prova</div><div id="tick" style="height:1px"></div>
   <script>window.metaClicks=0;document.addEventListener('click',()=>{window.metaClicks++;});
   // Nella coda il motore vero non parte: i suoi messaggi all'app li mandiamo a mano.
-  if(location.search.includes('sf_ts='))window.__SF_COMPOSER_ACTIVE__=true;</script></body></html>`;
+  if(location.search.includes('sf_ts='))window.__SF_COMPOSER_ACTIVE__=true;
+  // Come la pagina vera, si ridisegna di continuo: conta i fotogrammi effettivamente prodotti.
+  window.frames=0;(function t(){window.frames++;document.getElementById('tick').style.width=(window.frames%2+1)+'px';requestAnimationFrame(t);})();</script></body></html>`;
 
 let failures = 0;
 // Scrittura sincrona: l'uscita di Electron non deve perdere le righe.
@@ -101,6 +103,15 @@ async function run() {
     await toolbar.executeJavaScript('document.querySelector(".tab[data-view=meta]").click()');
     await sleep(300);
     check('Coda: la vista Meta non si può aprire', await front() === 'studio');
+    // Meta resta coperta dalla schermata animata ma deve continuare a disegnarsi e a ricevere i clic automatici.
+    await studio.executeJavaScript(`document.getElementById('publishStage').hidden=false;0`);
+    const f0 = await composer.executeJavaScript('window.frames');
+    await sleep(1000);
+    const fps = (await composer.executeJavaScript('window.frames')) - f0;
+    check('Coda: la vista Meta coperta continua a disegnarsi', fps > 20, `${fps} fotogrammi in un secondo`);
+    await composer.executeJavaScript('window.metaClicks=0;StoryFlowNative.trustedClick(60,140)');
+    check('Coda: il clic automatico arriva alla vista Meta coperta', Boolean(await until(() => composer.executeJavaScript('window.metaClicks===1'), 3000)));
+    await studio.executeJavaScript(`document.getElementById('publishStage').hidden=true;0`);
     const state = (items, done) => JSON.stringify({ items, dryRun: false, done, ok: done, err: 0, total: 3, log: [] });
     await composer.executeJavaScript(`StoryFlowNative.saveState(${JSON.stringify(state([story('a'), story('b'), story('c')], 0))});
       StoryFlowNative.sendProgress(JSON.stringify({stage:'image',index:1,total:3}));0`);

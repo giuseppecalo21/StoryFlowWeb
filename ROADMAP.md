@@ -14,7 +14,7 @@ Dopo un errore: azzera coda, stato della pubblicazione e registro, riporta l'app
 ### Schermata di pubblicazione: prova reale
 Durante la coda il pannello mostra la storia in lavorazione con una scansione animata, senza modo di chiuderla, e lo schermo resta acceso; "Ferma la coda dopo questa storia" lascia in coda solo le storie non ancora lavorate. Prima di distribuirla:
 - **Android** (la parte Kotlin non è stata compilata qui): compilare e provare su un telefono vero schermo acceso, tasto Indietro bloccato durante la coda, stop dopo la storia attuale e chiusura automatica dopo 4 minuti senza avanzamenti.
-- **App desktop**: ora la vista Meta resta nascosta durante la coda (`showMetaWhilePublishing: false` in `desktop/config.json`). Verificare con un account vero che i clic e il trascinamento dell'adesivo funzionino anche con la vista Meta dietro al pannello; se non funzionano, rimettere `true`.
+- **App desktop**: ora la vista Meta resta nascosta durante la coda (`showMetaWhilePublishing: false` in `desktop/config.json`). Coperta dal pannello, Chromium smetteva di disegnarla e i clic automatici non arrivavano ("Popup adesivo Link non aperto"): l'opzione `disable-backgrounding-occluded-windows` in `desktop/src/main.js` la tiene attiva. Riprovare con un account vero, Test e pubblicazione; se qualcosa non va, `showMetaWhilePublishing: true` riporta Meta in primo piano.
 
 ## Da ricordare
 - **Android – piano B**: pulsante "Condividi su Instagram" che passa la grafica creata all'app Instagram con l'intent ufficiale per le storie, per quando l'automazione non è disponibile. L'adesivo link andrà aggiunto a mano dall'utente.

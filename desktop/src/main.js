@@ -29,6 +29,9 @@ function chromeUserAgent() {
   return `Mozilla/5.0 (${platform}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${major}.0.0.0 Safari/537.36`;
 }
 app.userAgentFallback = chromeUserAgent();
+// Durante la coda la vista Meta sta dietro al pannello: senza questa opzione Chromium la considera coperta,
+// smette di disegnarla e i clic automatici non arrivano più (popup dell'adesivo link che non si apre).
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 
 if (!app.requestSingleInstanceLock()) app.quit();
 
