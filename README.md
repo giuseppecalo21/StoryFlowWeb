@@ -51,6 +51,8 @@ Ogni tanto esegui `node tools/sync-engine.mjs --android ../StoryFlow`: copia il 
 
 Il motore riconosce i pulsanti in **italiano** e **inglese** e prova sempre prima la lingua della pagina. Se un pulsante non viene trovato, il rapporto d'errore elenca i pulsanti visibili (es. `Pulsanti visibili: Foto/Video hinzufügen | …`). Basta copiarli nella voce giusta di `UI_LABELS` per aggiungere una lingua.
 
+Per raccogliere in un colpo solo tutte le etichette di una nuova lingua: imposta Facebook in quella lingua, apri il composer storie in Chrome, incolla `tools/cattura-etichette-meta.js` nella Console e fai a mano il percorso di una storia con adesivo link. Il pulsante viola in basso a sinistra copia l'elenco completo (testi dei pulsanti, `aria-label`, titoli delle finestre, avvisi).
+
 > I testi inglesi sono ricostruiti, non ancora verificati su un account Meta reale in inglese: va fatta una prova in modalità Test con Meta impostato in inglese.
 
 ## App desktop (sostituisce l'estensione)
