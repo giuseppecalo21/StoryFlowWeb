@@ -267,6 +267,29 @@
   </button>
 </nav>
 
+<!-- SCHERMATA DI PUBBLICAZIONE: copre il pannello finché la coda è in corso e non si può chiudere -->
+<div class="publish-stage" id="publishStage" role="dialog" aria-modal="true" aria-labelledby="psTitle" hidden>
+  <div class="ps-inner">
+    <div class="ps-top"><span class="publish-icon">SF</span><span class="ps-kicker">STORYFLOW · PUBBLICAZIONE IN CORSO</span></div>
+    <div class="ps-card" id="psCard">
+      <img id="psImage" alt="" hidden>
+      <div class="ps-grid" aria-hidden="true"></div>
+      <div class="ps-scan" aria-hidden="true"></div>
+      <div class="ps-corners" aria-hidden="true"></div>
+    </div>
+    <div class="ps-info">
+      <p class="ps-count" id="psCount">Storia 1 di 1</p>
+      <h2 id="psTitle">Preparazione della pubblicazione</h2>
+      <div class="ps-track"><div id="psFill" style="width:0%"></div></div>
+      <p class="ps-status" id="psStatus" aria-live="polite">Preparazione della storia…</p>
+    </div>
+    <div class="ps-strip" id="psStrip" aria-hidden="true"></div>
+    <button type="button" id="btnStopAfter" class="ps-stop" hidden>Ferma la coda dopo questa storia</button>
+    <p class="ps-note" id="psNote">Tieni aperta l'app: lo schermo resterà acceso fino alla fine.</p>
+    <button type="button" id="btnStageClose" class="ps-close" hidden>Chiudi</button>
+  </div>
+</div>
+
 <div class="modal-backdrop progress-modal" id="publishModal" hidden>
   <div class="publish-dialog" role="dialog" aria-modal="true" aria-labelledby="publishTitle">
     <div class="publish-top">

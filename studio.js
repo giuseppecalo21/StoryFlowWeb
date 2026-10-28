@@ -1136,7 +1136,7 @@
   // --- MOTORE DI PUBBLICAZIONE (APP NATIVA MOBILE + ESTENSIONE CHROME) ---
   const progressModal=$('publishModal');
   const STAGES=['start','image','link','sticker','verify','publish'];
-  const STEP_PCT={start:8,image:25,link:48,sticker:62,verify:78,publish:92,done:100,error:92};
+  const STEP_PCT={start:8,image:25,link:48,sticker:62,verify:78,publish:92,done:100,error:92,stopped:100};
   const STEP_TEXT={start:'Preparazione della storia',image:'Elaborazione della grafica',link:'Preparazione dei collegamenti',sticker:'Creazione adesivo cliccabile',verify:'Controllo dei collegamenti',publish:'Finalizzazione',done:'Operazione conclusa',error:'Operazione non completata'};
   const STEP_GROUP={start:'start',image:'image',link:'link',sticker:'link',verify:'link',publish:'publish'};
   const GROUPS=['start','image','link','publish'];
@@ -1187,8 +1187,8 @@
   }
 
   function updateProgress(info){
-    const stage=STAGES.includes(info.stage)?info.stage:(info.stage==='done'||info.stage==='error'?info.stage:'start');
-    const terminal=stage==='done'||stage==='error';
+    const stage=STAGES.includes(info.stage)?info.stage:(['done','error','stopped'].includes(info.stage)?info.stage:'start');
+    const terminal=stage==='done'||stage==='error'||stage==='stopped';
     if(STAGES.includes(stage))lastActiveStage=stage;
     const failedStage=STAGES.includes(info.failedStage)?info.failedStage:lastActiveStage;
     const visualStage=stage==='error'?failedStage:stage;
@@ -1200,10 +1200,12 @@
     $('progressFill').style.width=pct+'%';
     $('progressFill').classList.toggle('completed',stage==='done');
     $('progressFill').classList.toggle('failed',stage==='error');
-    $('progressPct').textContent=stage==='error'?'Da verificare':pct+'%';
+    $('progressPct').textContent=stage==='error'?'Da verificare':stage==='stopped'?'In pausa':pct+'%';
     $('progressCount').textContent=`Storia ${Math.min(count,total)} di ${total}`;
-    $('publishTitle').textContent=stage==='error'?'Problema rilevato':stage==='done'?(info.dryRun?'Test completato':'Storie pubblicate!'):'Pubblicazione in corso';
-    $('progressLast').textContent=info.message || (STEP_TEXT[stage]+'…');
+    $('publishTitle').textContent=stage==='error'?'Problema rilevato':stage==='done'?(info.dryRun?'Test completato':'Storie pubblicate!'):stage==='stopped'?'Coda in pausa':'Pubblicazione in corso';
+    $('publishSub').textContent=terminal?'Riepilogo della pubblicazione.':'Elaborazione automatica in corso.';
+    $('progressLast').textContent=info.message || ((STEP_TEXT[stage]||STEP_TEXT.done)+'…');
+    if(!terminal)renderStage(info,pct,visualStage);
 
     const activeGroup=STEP_GROUP[visualStage]||'start';
     const groupIdx=GROUPS.indexOf(activeGroup);
@@ -1233,16 +1235,172 @@
       showOutcomeBanner(true, info.dryRun ? 'Test riuscito!' : 'Esito positivo!', info.message || 'Operazione completata.');
       if (!info.dryRun) { queue = []; updateQueueUI(); }
     }
+    if(stage==='stopped'){
+      // Restano in coda solo le storie non ancora lavorate, pronte a ripartire.
+      const left=new Set((Array.isArray(info.remainingIds)?info.remainingIds:[]).map(String));
+      queue=queue.filter(q=>left.has(String(q.id)));
+      updateQueueUI();
+      $('publishDiagnosis').hidden=true;
+      showOutcomeBanner(true,'Coda in pausa',stoppedSummary(Number(info.ok)||0,Number(info.err)||0,queue.length));
+    }
     if(terminal){
       workflowActive=false; activeRequestId=null;
       setExtensionState(extensionConnected);
     }
   }
 
+  // Durante la coda si vede solo la schermata di pubblicazione; alla fine compare la finestra con l'esito.
+  function handleProgress(info){
+    if(!info||typeof info!=='object')return;
+    if(['done','error','stopped'].includes(info.stage)){
+      closeStage();
+      progressModal.hidden=false;
+    } else {
+      progressModal.hidden=true;
+      // Pannello ricaricato a coda in corso: la schermata riparte senza le anteprime.
+      if(publishStage.hidden){
+        workflowActive=true;
+        setExtensionState(extensionConnected);
+        openStage(Boolean(info.dryRun));
+      }
+    }
+    updateProgress(info);
+  }
+
   // Ricezione avanzamento diretto dall'App Mobile Nativa
-  window.__onStoryFlowNativeProgress = function(progressObj) {
-    progressModal.hidden = false;
-    updateProgress(progressObj);
+  window.__onStoryFlowNativeProgress = handleProgress;
+
+  function stoppedSummary(ok,err,left){
+    const done=ok===0?'Nessuna storia pubblicata':ok===1?'Pubblicata 1 storia':`Pubblicate ${ok} storie`;
+    const failed=err===0?'':err===1?', 1 non riuscita':`, ${err} non riuscite`;
+    const rest=left===0?'Non restano storie in coda.':left===1?'L’altra storia resta in coda, pronta a ripartire.':`Le altre ${left} restano in coda, pronte a ripartire.`;
+    return `${done}${failed}. ${rest}`;
+  }
+
+  // --- SCHERMATA DI PUBBLICAZIONE ---
+  // Copre tutto il pannello finché la coda è in corso e non ha un pulsante per chiuderla: mostra la storia
+  // in lavorazione con una scansione animata. Le app tengono lo schermo acceso da sole; nel browser si usa
+  // la Wake Lock API, se disponibile. "Ferma la coda dopo questa storia" c'è solo nelle app che lo gestiscono.
+  const publishStage=$('publishStage');
+  const STAGE_TEXT={start:'Preparazione della storia',image:'Caricamento della grafica',link:'Aggiunta del link all’articolo',sticker:'Aggiunta del link all’articolo',verify:'Ultimi controlli',publish:'Pubblicazione della storia'};
+  const STAGE_STALL_MS=6*60*1000;
+  let runItems=[], stageItemId=null, stageDryRun=false, stopArmed=false, stageWatch=null, stageProgressAt=0, nativeIdleChecks=0, wakeLock=null;
+  const canStopAfterCurrent=()=>isNativeApp()&&typeof window.StoryFlowNative.setStopAfterCurrent==='function';
+
+  async function keepScreenOn(on){
+    try {
+      if(on&&!wakeLock&&navigator.wakeLock&&document.visibilityState==='visible'){
+        wakeLock=await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release',()=>{wakeLock=null;});
+        // La coda può essere finita mentre si aspettava il permesso.
+        if(publishStage.hidden){ await wakeLock.release(); wakeLock=null; }
+      } else if(!on&&wakeLock){ await wakeLock.release(); wakeLock=null; }
+    } catch(_) {}
+  }
+  // Il blocco dello schermo decade quando la pagina passa in secondo piano: lo si richiede al ritorno.
+  document.addEventListener('visibilitychange',()=>{ if(!publishStage.hidden)keepScreenOn(true); });
+
+  function openStage(dryRun, items=[]){
+    runItems=items.map(it=>({id:String(it.id),title:String(it.title||''),dataUrl:String(it.dataUrl||'')}));
+    stageItemId=null; stageDryRun=dryRun; stopArmed=false; stageProgressAt=Date.now(); nativeIdleChecks=0;
+    $('psStrip').textContent='';
+    runItems.forEach(it=>{
+      const thumb=document.createElement('span');
+      if(it.dataUrl)thumb.style.backgroundImage=`url("${it.dataUrl}")`;
+      $('psStrip').appendChild(thumb);
+    });
+    $('psStrip').hidden=runItems.length<2;
+    $('psFill').style.width='4%';
+    $('psStatus').textContent=STAGE_TEXT.start+'…';
+    $('psNote').textContent=isNativeApp()?'Tieni aperta l’app: lo schermo resterà acceso fino alla fine.':'Tieni aperta questa pagina fino alla fine della pubblicazione.';
+    $('btnStageClose').hidden=true;
+    showStageItem(runItems[0]||null,1,Math.max(1,runItems.length));
+    publishStage.hidden=false;
+    keepScreenOn(true);
+    clearInterval(stageWatch);
+    stageWatch=setInterval(watchStage,3000);
+  }
+
+  function closeStage(){
+    if(publishStage.hidden)return;
+    publishStage.hidden=true;
+    clearInterval(stageWatch); stageWatch=null;
+    keepScreenOn(false);
+  }
+
+  function showStageItem(item,position,total){
+    const id=item?item.id:'';
+    if(id!==stageItemId){
+      stageItemId=id;
+      const img=$('psImage');
+      img.hidden=!item?.dataUrl;
+      if(item?.dataUrl)img.src=item.dataUrl;
+      const card=$('psCard');
+      card.classList.remove('ps-swap'); void card.offsetWidth; card.classList.add('ps-swap');
+    }
+    $('psTitle').textContent=item?.title||'Storia in preparazione';
+    $('psCount').textContent=stageDryRun?'Test · storia di prova':`Storia ${position} di ${total}`;
+    [...$('psStrip').children].forEach((thumb,i)=>{
+      thumb.className=i<position-1?'done':i===position-1?'current':(stopArmed?'skipped':'');
+    });
+    // Il pulsante serve solo se dopo questa storia ce n'è almeno un'altra.
+    const left=total-position;
+    $('btnStopAfter').hidden=!canStopAfterCurrent()||stageDryRun||left<1;
+    $('btnStopAfter').classList.toggle('armed',stopArmed);
+    $('btnStopAfter').textContent=stopArmed?'Continua con tutta la coda':'Ferma la coda dopo questa storia';
+    if(stopArmed)$('psNote').textContent=left===1
+      ?'Ci fermiamo dopo questa storia: l’ultima resta in coda, pronta a ripartire.'
+      :`Ci fermiamo dopo questa storia: le altre ${left} restano in coda, pronte a ripartire.`;
+    else $('psNote').textContent=isNativeApp()?'Tieni aperta l’app: lo schermo resterà acceso fino alla fine.':'Tieni aperta questa pagina fino alla fine della pubblicazione.';
+  }
+
+  function renderStage(info,pct,visualStage){
+    stageProgressAt=Date.now();
+    $('btnStageClose').hidden=true;
+    const total=runItems.length||Math.max(1,Number(info.total)||1);
+    let idx=info.itemId!=null?runItems.findIndex(it=>it.id===String(info.itemId)):-1;
+    if(idx<0)idx=Math.min(Math.max(1,Number(info.index)||1),total)-1;
+    showStageItem(runItems[idx]||null,idx+1,total);
+    $('psFill').style.width=Math.max(4,pct)+'%';
+    $('psStatus').textContent=(STAGE_TEXT[visualStage]||STAGE_TEXT.start)+'…';
+  }
+
+  // Rete di sicurezza: se l'app ha chiuso la coda senza avvisare, o non arrivano notizie da minuti,
+  // la schermata non deve restare bloccata per sempre.
+  function watchStage(){
+    if(publishStage.hidden)return;
+    if(isNativeApp()&&typeof window.StoryFlowNative.isQueueRunning==='function'){
+      let running=true;
+      try { running=Boolean(window.StoryFlowNative.isQueueRunning()); } catch(_) {}
+      nativeIdleChecks=running?0:nativeIdleChecks+1;
+      if(nativeIdleChecks>=2){
+        closeStage();
+        workflowActive=false; activeRequestId=null;
+        setExtensionState(extensionConnected);
+        $('btnLastReport').onclick();
+        return;
+      }
+    }
+    if(Date.now()-stageProgressAt>STAGE_STALL_MS&&$('btnStageClose').hidden){
+      $('psStatus').textContent='Nessun aggiornamento da qualche minuto.';
+      $('psNote').textContent='Puoi chiudere questa schermata e controllare l’ultimo report di pubblicazione.';
+      $('btnStageClose').hidden=false;
+    }
+  }
+
+  $('btnStopAfter').onclick=()=>{
+    if(!canStopAfterCurrent())return;
+    stopArmed=!stopArmed;
+    try { window.StoryFlowNative.setStopAfterCurrent(stopArmed); } catch(_) { stopArmed=false; }
+    const idx=runItems.findIndex(it=>it.id===stageItemId);
+    const total=runItems.length||1;
+    showStageItem(runItems[idx]||null,idx>=0?idx+1:1,total);
+  };
+  $('btnStageClose').onclick=()=>{
+    closeStage();
+    workflowActive=false; activeRequestId=null;
+    setExtensionState(extensionConnected);
+    $('btnLastReport').onclick();
   };
 
   function startQueue(dryRun){
@@ -1257,11 +1415,12 @@
     activeRequestId='sf-'+Date.now();
     lastProgressPct=0;workflowActive=true;lastActiveStage='start';currentDryRun=!!dryRun;
     setExtensionState(true);
-    progressModal.hidden=false;
+    progressModal.hidden=true;
     $('publishDiagnosis').hidden=true;
     $('publishOutcome').hidden=true;
     $('progressFill').style.width='5%';
-    $('progressLast').textContent='Avvio del browser desktop integrato…';
+    $('progressLast').textContent='Avvio della pubblicazione…';
+    openStage(!!dryRun, dryRun?queue.slice(0,1):queue);
 
     if(isNativeApp()){
       window.StoryFlowNative.startQueue(JSON.stringify({
@@ -1306,7 +1465,9 @@
       lastHeartbeat=Date.now();
       setExtensionState(true);
     } else if(msg.status==='PROGRESS'&&msg.progress){
-      progressModal.hidden=false;updateProgress(msg.progress);
+      handleProgress(msg.progress);
+    } else if(msg.status==='START_FAILED'&&workflowActive&&msg.reqId===activeRequestId){
+      handleProgress({stage:'error',failedStage:'start',index:1,total:queue.length||1,dryRun:currentDryRun,message:String(msg.error||'Avvio non riuscito'),log:[]});
     } else if(msg.status==='LAST_REPORT'){
       if(!msg.available){$('progressLast').textContent='Nessuna esecuzione precedente.';return;}
       if(msg.summary?.err>0) updateProgress({stage:'error',failedStage:msg.lastError?.stage||'start',message:msg.lastError?.message||msg.errorLine,log:msg.log});
