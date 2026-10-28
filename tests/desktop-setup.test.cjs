@@ -71,10 +71,19 @@ async function run() {
     check('Il pannello vede le funzioni dell’onboarding', await studio.executeJavaScript(
       `['pickMetaTarget','verifyMetaTarget','openMetaComposer','cancelMetaSetup'].every(n=>typeof StoryFlowNative[n]==='function')`));
 
+    // La lingua scelta nel pannello passa all'app: barra in alto e riquadro nella pagina di Meta.
+    const toolbar = await until(() => byUrl('shell.html'));
+    await studio.executeJavaScript(`window.SF_I18N.setLang('es');0`);
+    check('Lingua: la barra in alto segue il pannello', Boolean(await until(() => toolbar.executeJavaScript(
+      `document.getElementById('tabStudio').textContent==='🎨 Panel de historias' && document.documentElement.lang==='es'`), 3000)));
+    check('Lingua: scelta ricordata dall’app', JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'settings.json'), 'utf8')).lang === 'es');
+
     await studio.executeJavaScript('window.__res=null;StoryFlowNative.pickMetaTarget().then(r=>{window.__res=r;});0');
     const meta = await until(() => byUrl('story_composer/?sf_setup='));
     check('“Trova il nome” apre la pagina delle storie', Boolean(meta));
     await until(() => meta.executeJavaScript('!!document.querySelector("[data-storyflow=picker]")'));
+    check('Lingua: il riquadro nella pagina di Meta è in spagnolo', await meta.executeJavaScript(
+      'document.querySelector("[data-storyflow=picker]").shadowRoot.querySelector("b").textContent').then(t => t.startsWith('Haz clic en el nombre')));
     await click(meta, 'document.getElementById("page")');
     await until(() => meta.executeJavaScript('!!document.querySelector("[data-storyflow=picker]").shadowRoot.querySelector("button.choice")'));
     await click(meta, 'document.querySelector("[data-storyflow=picker]").shadowRoot.querySelector("button.choice")');
@@ -91,7 +100,6 @@ async function run() {
     check('Una sola operazione alla volta', first.ok === true && second.reason === 'busy', JSON.stringify([first, second]));
 
     // Coda di tre storie: lo stop arriva durante la prima, la coda si chiude prima della seconda.
-    const toolbar = await until(() => byUrl('shell.html'));
     const front = () => toolbar.executeJavaScript('document.querySelector(".tab.active")?.dataset.view');
     const story = id => ({ id, title: 'Storia ' + id, url: 'https://example.com/' + id, dataUrl: 'data:,' });
     await studio.executeJavaScript(`window.__progress=[];window.__onStoryFlowNativeProgress=p=>window.__progress.push(p);
@@ -129,6 +137,7 @@ async function run() {
       StoryFlowNative.nextStory(false);0`);
     const stopped = await until(() => studio.executeJavaScript('window.__progress.find(p=>p.stage==="stopped")'));
     check('Stop: la coda si ferma dopo la storia attuale', stopped && stopped.ok === 1 && JSON.stringify(stopped.remainingIds) === '["b","c"]', JSON.stringify(stopped));
+    check('Stop: messaggio nella lingua del pannello', stopped && stopped.msgLang === 'es' && stopped.message === 'Cola detenida a petición', JSON.stringify(stopped && stopped.message));
     check('Stop: coda chiusa e schermo libero', !(await studio.executeJavaScript('StoryFlowNative.isQueueRunning()')) && screenLocks.stopped === 1, JSON.stringify(screenLocks));
     await toolbar.executeJavaScript('document.querySelector(".tab[data-view=meta]").click()');
     check('Dopo la coda la vista Meta si apre di nuovo', Boolean(await until(async () => (await front()) === 'meta', 3000)));

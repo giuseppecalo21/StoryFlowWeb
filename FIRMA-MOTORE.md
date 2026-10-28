@@ -55,14 +55,14 @@ Cosa è successo:
 
 ## Passo 2 — Firmare il motore (ogni volta che cambia)
 
-1. Se hai modificato `engine/composer.js`, alza il numero in cima al file: `ENGINE_VERSION = '4.0.1'` → `'4.0.2'`. Le app scaricano solo versioni **più nuove** di quella che hanno.
+1. Se hai modificato `engine/composer.js`, alza il numero in cima al file: `ENGINE_VERSION = '4.1.0'` → `'4.1.1'`. Le app scaricano solo versioni **più nuove** di quella che hanno.
 2. Nel terminale scrivi:
    ```
    node tools/engine-sign.mjs
    ```
    Risposta attesa:
    ```
-   Motore 4.0.1 firmato (sha256 1a2b3c4d5e6f…). Carica engine/composer.js e engine/manifest.json sul server.
+   Motore 4.1.1 firmato (sha256 1a2b3c4d5e6f…). Carica engine/composer.js e engine/manifest.json sul server.
    ```
 3. Carica sul server, nella cartella `engine/`, **entrambi** i file: `composer.js` e `manifest.json`. Se ne carichi uno solo, la firma non torna e le app ignorano l'aggiornamento (continuano a funzionare con il motore che hanno).
 4. Ogni tanto lancia anche `node tools/sync-engine.mjs --android ../StoryFlow`: copia il motore nuovo dentro estensione e app Android, così anche il motore incluso nei pacchetti resta aggiornato.

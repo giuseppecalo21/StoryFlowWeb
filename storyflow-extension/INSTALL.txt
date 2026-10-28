@@ -1,0 +1,15 @@
+StoryFlow – Chrome extension 3.0.1
+
+Tip: on Windows and Mac, use the StoryFlow Studio app instead: it doesn't need the extension.
+If you'd rather stay in Chrome:
+
+1. Go to chrome://extensions and turn on "Developer mode".
+2. Turn off any other StoryFlow extensions.
+3. Load the storyflow-extension folder with "Load unpacked".
+4. Open the extension's "Details" and turn on "Allow User Scripts":
+   this way the publishing engine updates itself when Meta changes its interface.
+   Without this switch the extension still works, but it only uses the engine included in the package.
+5. Go back to the StoryFlow panel and press Ctrl+Shift+R.
+6. Check that it says "Engine connected" and try a single story in Test mode.
+
+IMPORTANT: while publishing, the Meta tab stays in the foreground: don't move it or close it.

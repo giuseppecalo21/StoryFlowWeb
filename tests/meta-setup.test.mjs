@@ -26,7 +26,7 @@ const PAGE = `<!doctype html><html lang="it"><body style="font-family:sans-serif
 </body></html>`;
 
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1100, height: 700 } });
+const page = await browser.newPage({ viewport: { width: 1100, height: 700 }, locale: 'it-IT' });
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 await page.setContent(PAGE);
@@ -51,6 +51,16 @@ let res = await picked;
 check('Scelta: tutta la scritta, congiunzione compresa', res.ok === true && res.text === 'Zona Prova e zona_prova', JSON.stringify(res));
 check('Scelta: i clic non arrivano a Meta', await page.evaluate(() => window.metaClicks) === 0);
 check('Scelta: il selettore sparisce alla fine', await page.locator('[data-storyflow=picker]').count() === 0);
+
+// Il riquadro segue la lingua del pannello passata dalle app.
+picked = page.evaluate(() => window.__sfMetaSetup.pick({ lang: 'en' }));
+await page.waitForSelector('[data-storyflow=picker] >> text=Click the name of your Page');
+await page.click('#page');
+check('Lingua del pannello (en): riquadro in inglese', (await page.locator('[data-storyflow=picker] .body').textContent()).startsWith('Which text should we use?'));
+await page.click('[data-storyflow=picker] >> text=Choose again');
+await page.click('[data-storyflow=picker] >> text=Cancel');
+res = await picked;
+check('Lingua del pannello (en): annullato', res.ok === false && res.reason === 'cancel', JSON.stringify(res));
 
 picked = page.evaluate(() => window.__sfMetaSetup.pick());
 await page.waitForSelector('[data-storyflow=picker] >> text=Clicca sul nome');

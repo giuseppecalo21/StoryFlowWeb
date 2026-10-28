@@ -1,0 +1,11 @@
+{
+  "name": {
+    "message": "StoryFlow – Publicación automática de historias"
+  },
+  "description": {
+    "message": "StoryFlow: publica en Meta Business Suite las historias preparadas en el panel, con un motor que se actualiza desde el servidor."
+  },
+  "actionTitle": {
+    "message": "Conectar StoryFlow al panel abierto"
+  }
+}

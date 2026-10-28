@@ -60,7 +60,7 @@ const contrast = (a, b) => { const x = luminance(a), y = luminance(b); return (M
  *         'hang' (nessuna risposta), 'quota' (tutti al limite d'uso).
  */
 async function openStudio(browser, { desktop = false, viewport = { width: 1440, height: 900 }, gemini = 'fallback', presetKey = '', onboarding = false } = {}) {
-  const page = await browser.newPage({ viewport });
+  const page = await browser.newPage({ viewport, locale: 'it-IT' });
   const errors = [];
   const calls = [];
   page.on('pageerror', e => errors.push(e.message));

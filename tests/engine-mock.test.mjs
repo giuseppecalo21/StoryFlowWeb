@@ -19,11 +19,11 @@ const server = createServer((_req, res) => { res.setHeader('Content-Type', 'text
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const base = `http://127.0.0.1:${server.address().port}/mock`;
 
-async function run(lang, dryRun) {
+async function run(lang, dryRun, uiLang) {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const state = {
-    items: [{ id: 'a1', title: 'Titolo di prova', url: 'https://example.com/articolo', dataUrl: JPEG, stickerText: 'EXAMPLE.COM', metaTarget: 'My Page' }],
+    items: [{ id: 'a1', title: 'Titolo di prova', url: 'https://example.com/articolo', dataUrl: JPEG, stickerText: 'EXAMPLE.COM', metaTarget: 'My Page', ...(uiLang ? { uiLang } : {}) }],
     dryRun, done: 0, ok: 0, err: 0, total: 1, log: []
   };
   await page.exposeFunction('__host', (kind, payload) => host(kind, payload));
@@ -71,6 +71,15 @@ for (const lang of ['it', 'en']) {
     JSON.stringify(test.mock.saved));
   const real = await run(lang, false);
   check(`[${lang}] pubblicazione: storia condivisa`, real.mock.shared && real.events.state?.ok === 1, real.events.state?.log?.slice(-2).join(' / '));
+}
+
+// Messaggi per l'utente nella lingua del pannello (uiLang), anche con Meta in un'altra lingua.
+{
+  const es = await run('en', true, 'es');
+  const msgs = es.events.progress.map(p => `${p.msgLang}:${p.message}`);
+  check('[uiLang es] avanzamento in spagnolo', msgs.includes('es:Subiendo la imagen') && msgs.includes('es:¡Prueba completada con éxito!'), msgs.join(' / '));
+  const old = await run('it', true);
+  check('[senza uiLang] avanzamento in italiano', old.events.progress.some(p => p.msgLang === 'it' && p.message === 'Caricamento immagine'));
 }
 
 const de = await run('de', false);

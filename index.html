@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>StoryFlow Studio – Editor di storie</title>
+  <title data-i18n="page.title">StoryFlow Studio – Editor di storie</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="ui.css?v=4.2.1">
+  <link rel="stylesheet" href="ui.css?v=4.3.0">
 </head>
 <body data-mobile-tab="news">
 
@@ -14,21 +14,22 @@
     <span class="brand-mark">SF</span><span class="brand-name">StoryFlow <small>STUDIO</small></span>
   </div>
   <div class="top-bar">
-    <label class="site-label" for="siteUrl">Sito o blog</label>
-    <input type="url" id="siteUrl" value="https://wordpress.org/news" placeholder="https://tuosito.it">
-    <button class="primary" id="btnFetch">Carica notizie</button>
-    <button class="secondary" id="btnSettings">Impostazioni sito</button>
-    <button class="secondary" id="btnMetaLogin" hidden>🔑 Account Meta</button>
-    <button class="secondary" id="btnGuide" title="Rivedi i passaggi iniziali">❔ Guida</button>
-    <button class="secondary" id="btnExtension">Scarica app</button>
-    <span id="extStatus" class="badge-ext">Verifica motore...</span>
+    <label class="site-label" for="siteUrl" data-i18n="top.siteLabel">Sito o blog</label>
+    <input type="url" id="siteUrl" value="https://wordpress.org/news" placeholder="https://tuosito.it" data-i18n-attr="placeholder:top.sitePlaceholder">
+    <button class="primary" id="btnFetch" data-i18n="top.fetch">Carica notizie</button>
+    <button class="secondary" id="btnSettings" data-i18n="top.settings">Impostazioni sito</button>
+    <button class="secondary" id="btnMetaLogin" hidden data-i18n="top.metaAccount">🔑 Account Meta</button>
+    <button class="secondary" id="btnGuide" title="Rivedi i passaggi iniziali" data-i18n="top.guide" data-i18n-attr="title:top.guideTitle">❔ Guida</button>
+    <button class="secondary" id="btnExtension" data-i18n="top.download">Scarica app</button>
+    <span id="extStatus" class="badge-ext" data-i18n="top.engineChecking">Verifica motore...</span>
+    <select id="langSelect" class="lang-select" data-lang-select aria-label="Lingua" data-i18n-attr="aria-label:lang.label"></select>
   </div>
 </header>
 
-<nav class="subnav" aria-label="Navigazione studio">
+<nav class="subnav" aria-label="Navigazione studio" data-i18n-attr="aria-label:nav.aria">
   <span class="subnav-current">Studio editor</span>
-  <span>Gestione storie / Editor 1080 × 1920</span>
-  <span class="version-tag" id="versionTag">VERSIONE 4.1</span>
+  <span data-i18n="nav.path">Gestione storie / Editor 1080 × 1920</span>
+  <span class="version-tag" id="versionTag" data-i18n="nav.version">VERSIONE 4.1</span>
 </nav>
 
 <section class="overview">
@@ -36,12 +37,12 @@
     <div>
       <p class="eyebrow">STORYFLOW / WORKSPACE</p>
       <h1>Story studio</h1>
-      <p class="overview-sub">Prepara, personalizza e pubblica storie dai tuoi articoli.</p>
+      <p class="overview-sub" data-i18n="ov.sub">Prepara, personalizza e pubblica storie dai tuoi articoli.</p>
     </div>
     <div class="summary-pills">
-      <div><span>Articoli</span><strong id="statNews">0</strong></div>
-      <div><span>In coda</span><strong id="statQueue">0</strong></div>
-      <div><span>Stato</span><strong id="statStatus">In attesa</strong></div>
+      <div><span data-i18n="ov.articles">Articoli</span><strong id="statNews">0</strong></div>
+      <div><span data-i18n="ov.queue">In coda</span><strong id="statQueue">0</strong></div>
+      <div><span data-i18n="ov.status">Stato</span><strong id="statStatus" data-i18n="status.waiting">In attesa</strong></div>
     </div>
   </div>
 </section>
@@ -50,22 +51,22 @@
   <!-- COLONNA 1: ARTICOLI DAL SITO -->
   <div class="col col-news">
     <div class="col-header">
-      <span>ARTICOLI DAL SITO</span>
+      <span data-i18n="news.header">ARTICOLI DAL SITO</span>
       <span id="newsCount">0 articoli</span>
     </div>
-    <p id="feedSource" class="feed-source" aria-live="polite">Fonte: rilevamento automatico REST / RSS</p>
+    <p id="feedSource" class="feed-source" aria-live="polite" data-i18n="news.sourceAuto">Fonte: rilevamento automatico REST / RSS</p>
     <div class="col-body" id="newsList">
-      <p style="color:var(--muted);font-size:13px;">Clicca su "Carica notizie" per estrarre gli ultimi articoli disponibili tramite WordPress REST o RSS.</p>
+      <p style="color:var(--muted);font-size:13px;" data-i18n="news.empty">Clicca su "Carica notizie" per estrarre gli ultimi articoli disponibili tramite WordPress REST o RSS.</p>
     </div>
   </div>
 
   <!-- COLONNA 2: STUDIO INTERATTIVO 1080x1920 -->
   <div class="studio-area col-studio">
-    <div class="stage-heading"><span>ANTEPRIMA STORIA</span><small>1080 × 1920 · 9:16</small></div>
-    <div class="canvas-wrap" id="canvasWrap" title="Trascina per spostare la foto, usa due dita o la rotellina per lo zoom">
+    <div class="stage-heading"><span data-i18n="stage.heading">ANTEPRIMA STORIA</span><small>1080 × 1920 · 9:16</small></div>
+    <div class="canvas-wrap" id="canvasWrap" title="Trascina per spostare la foto, usa due dita o la rotellina per lo zoom" data-i18n-attr="title:stage.canvasTitle">
       <canvas id="storyCanvas" width="1080" height="1920"></canvas>
     </div>
-    <div class="canvas-hint">
+    <div class="canvas-hint" data-i18n-html="stage.hint">
       👆 <b>Trascina la foto</b> col dito o mouse per inquadrarla • <b>Pizzica con 2 dita</b> o usa la rotellina per lo Zoom
     </div>
   </div>
@@ -73,181 +74,181 @@
   <!-- COLONNA 3: EDITOR & CODA DI PUBBLICAZIONE -->
   <div class="col col-editor" style="border-right:none;">
     <div class="col-header">
-      <span>EDITOR E PUBBLICAZIONE</span>
+      <span data-i18n="ed.header">EDITOR E PUBBLICAZIONE</span>
     </div>
     <div class="col-body">
-      <p class="studio-intro">Seleziona una notizia, personalizza testo e grafica, poi aggiungila alla coda.</p>
+      <p class="studio-intro" data-i18n="ed.intro">Seleziona una notizia, personalizza testo e grafica, poi aggiungila alla coda.</p>
 
       <div class="control-group">
-        <label for="inpTitle"><span>Titolo nella Storia</span></label>
-        <textarea id="inpTitle" placeholder="Seleziona una notizia..."></textarea>
+        <label for="inpTitle"><span data-i18n="ed.titleLabel">Titolo nella Storia</span></label>
+        <textarea id="inpTitle" placeholder="Seleziona una notizia..." data-i18n-attr="placeholder:ed.titlePlaceholder"></textarea>
         <div id="titleChoices" class="title-choices" aria-live="polite" hidden></div>
-        <label for="cfgStickerText" style="margin-top:12px;">Testo adesivo link (pulsante cliccabile)</label>
-        <input type="text" id="cfgStickerText" maxlength="70" value="WORDPRESS.ORG" placeholder="Nome del sito" style="width:100%;">
-        <label for="cfgCtaText" style="margin-top:10px;">Testo barra invito all'azione</label>
+        <label for="cfgStickerText" style="margin-top:12px;" data-i18n="ed.stickerLabel">Testo adesivo link (pulsante cliccabile)</label>
+        <input type="text" id="cfgStickerText" maxlength="70" value="WORDPRESS.ORG" placeholder="Nome del sito" data-i18n-attr="placeholder:ed.stickerPlaceholder" style="width:100%;">
+        <label for="cfgCtaText" style="margin-top:10px;" data-i18n="ed.ctaLabel">Testo barra invito all'azione</label>
         <input type="text" id="cfgCtaText" maxlength="65" value="LEGGI L'ARTICOLO SU" style="width:100%;">
         <div class="inline-tools">
-          <button type="button" class="secondary" id="btnRestoreTexts">↩ Titolo e testi originali</button>
+          <button type="button" class="secondary" id="btnRestoreTexts" data-i18n="ed.restoreTexts">↩ Titolo e testi originali</button>
         </div>
       </div>
 
       <button type="button" class="editor-toggle" id="btnToggleEditor" aria-expanded="false" aria-controls="advancedEditor">
         <span class="editor-toggle-icon" aria-hidden="true">🎨</span>
-        <span class="editor-toggle-text"><strong>Personalizza grafica</strong><small>Font, colori, pattern, sfondo, logo e inquadratura</small></span>
-        <span class="editor-toggle-action"><span id="editorToggleLabel">Apri</span> <svg class="editor-chevron" aria-hidden="true" viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="editor-toggle-text"><strong data-i18n="ed.customize">Personalizza grafica</strong><small data-i18n="ed.customizeSub">Font, colori, pattern, sfondo, logo e inquadratura</small></span>
+        <span class="editor-toggle-action"><span id="editorToggleLabel" data-i18n="ed.open">Apri</span> <svg class="editor-chevron" aria-hidden="true" viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       </button>
 
       <div id="advancedEditor" class="advanced-editor" hidden>
         <div class="control-group lucky-box">
-          <label><span>Combinazione a sorpresa</span></label>
-          <p class="lucky-note">Colori, font e pattern scelti a caso, sempre ben leggibili. Premi più volte finché non trovi quella giusta.</p>
+          <label><span data-i18n="lucky.title">Combinazione a sorpresa</span></label>
+          <p class="lucky-note" data-i18n="lucky.note">Colori, font e pattern scelti a caso, sempre ben leggibili. Premi più volte finché non trovi quella giusta.</p>
           <div class="lucky-actions">
-            <button type="button" class="primary" id="btnLucky">🎲 Mi sento fortunato</button>
-            <button type="button" class="secondary" id="btnLuckyBack" disabled title="Torna alla combinazione precedente">↶ Indietro</button>
+            <button type="button" class="primary" id="btnLucky" data-i18n="lucky.button">🎲 Mi sento fortunato</button>
+            <button type="button" class="secondary" id="btnLuckyBack" disabled title="Torna alla combinazione precedente" data-i18n="lucky.back" data-i18n-attr="title:lucky.backTitle">↶ Indietro</button>
           </div>
         </div>
 
         <div class="control-group compact-editor-controls">
-          <label><span>Tipografia e posizione</span></label>
+          <label><span data-i18n="typo.title">Tipografia e posizione</span></label>
           <div class="row-2" style="margin-top:8px;">
             <div>
-              <label>Dimensione Font <span id="lblFontSize">58px</span></label>
+              <label><span data-i18n="typo.fontSize">Dimensione Font</span> <span id="lblFontSize">58px</span></label>
               <input type="range" id="rngFontSize" min="36" max="82" value="58">
             </div>
             <div>
-              <label>Altezza Testo Y <span id="lblTextY">0</span></label>
+              <label><span data-i18n="typo.textY">Altezza Testo Y</span> <span id="lblTextY">0</span></label>
               <input type="range" id="rngTextY" min="-120" max="120" value="0">
             </div>
           </div>
-          <label class="check-row" style="margin-top:10px;"><input type="checkbox" id="cfgTitleUppercase"> Titolo tutto in maiuscolo</label>
+          <label class="check-row" style="margin-top:10px;"><input type="checkbox" id="cfgTitleUppercase"> <span data-i18n="typo.uppercase">Titolo tutto in maiuscolo</span></label>
         </div>
 
         <div class="control-group">
-          <label><span>Stile grafico</span><span id="saveStatus" class="save-hint">Salvataggio locale</span></label>
+          <label><span data-i18n="style.title">Stile grafico</span><span id="saveStatus" class="save-hint" data-i18n="style.saveLocal">Salvataggio locale</span></label>
           <div class="row-2">
-            <div><label for="cfgColor">Colore del brand</label><input type="color" id="cfgColor" value="#6047e8" class="color-control"></div>
-            <div><label for="cfgDarkColor">Colore aree scure</label><input type="color" id="cfgDarkColor" value="#181818" class="color-control"></div>
+            <div><label for="cfgColor" data-i18n="style.brandColor">Colore del brand</label><input type="color" id="cfgColor" value="#6047e8" class="color-control"></div>
+            <div><label for="cfgDarkColor" data-i18n="style.darkColor">Colore aree scure</label><input type="color" id="cfgDarkColor" value="#181818" class="color-control"></div>
           </div>
-          <label for="cfgPattern" style="margin-top:12px;">Pattern di sfondo <span id="patternCount">36 stili</span></label>
+          <label for="cfgPattern" style="margin-top:12px;"><span data-i18n="style.pattern">Pattern di sfondo</span> <span id="patternCount">36 stili</span></label>
           <select id="cfgPattern" style="width:100%;"></select>
-          <div id="patternGrid" class="pattern-grid" aria-label="Galleria pattern"></div>
+          <div id="patternGrid" class="pattern-grid" aria-label="Galleria pattern" data-i18n-attr="aria-label:style.patternGallery"></div>
 
           <div class="background-editor">
-            <div class="background-top"><strong>Immagine di sfondo</strong><span>Alternativa al colore scuro</span></div>
-            <label class="check-row"><input type="checkbox" id="cfgBackgroundEnabled"> Usa sfondo personalizzato</label>
+            <div class="background-top"><strong data-i18n="bg.title">Immagine di sfondo</strong><span data-i18n="bg.sub">Alternativa al colore scuro</span></div>
+            <label class="check-row"><input type="checkbox" id="cfgBackgroundEnabled"> <span data-i18n="bg.use">Usa sfondo personalizzato</span></label>
             <input type="file" id="cfgBackgroundFile" accept="image/png,image/jpeg,image/webp" style="width:100%;margin:8px 0;">
             <div class="background-preview-line">
-              <img id="backgroundPreview" alt="Anteprima sfondo" hidden>
+              <img id="backgroundPreview" alt="Anteprima sfondo" data-i18n-attr="alt:bg.previewAlt" hidden>
               <span id="backgroundInfo">Nessuna immagine caricata</span>
-              <button type="button" class="secondary" id="btnRemoveBackground">Rimuovi</button>
+              <button type="button" class="secondary" id="btnRemoveBackground" data-i18n="common.remove">Rimuovi</button>
             </div>
             <div class="row-2" style="margin-top:12px;">
-              <div><label for="cfgBackgroundTint">Velatura scura <span id="lblBackgroundTint">55%</span></label><input type="range" id="cfgBackgroundTint" min="0" max="95" value="55"></div>
+              <div><label for="cfgBackgroundTint"><span data-i18n="bg.tint">Velatura scura</span> <span id="lblBackgroundTint">55%</span></label><input type="range" id="cfgBackgroundTint" min="0" max="95" value="55"></div>
               <div>
-                <label for="cfgBackgroundPosition">Inquadratura</label>
+                <label for="cfgBackgroundPosition" data-i18n="bg.position">Inquadratura</label>
                 <select id="cfgBackgroundPosition" style="width:100%;">
-                  <option value="center">Centro</option><option value="top">Alto</option><option value="bottom">Basso</option><option value="left">Sinistra</option><option value="right">Destra</option>
+                  <option value="center" data-i18n="pos.center">Centro</option><option value="top" data-i18n="pos.top">Alto</option><option value="bottom" data-i18n="pos.bottom">Basso</option><option value="left" data-i18n="pos.left">Sinistra</option><option value="right" data-i18n="pos.right">Destra</option>
                 </select>
               </div>
             </div>
           </div>
 
           <div class="row-2" style="margin-top:10px;">
-            <div><label for="cfgTitleFont">Font del titolo</label><select id="cfgTitleFont" style="width:100%;"></select></div>
-            <div><label for="cfgCtaFont">Font della barra CTA</label><select id="cfgCtaFont" style="width:100%;"></select></div>
+            <div><label for="cfgTitleFont" data-i18n="font.title">Font del titolo</label><select id="cfgTitleFont" style="width:100%;"></select></div>
+            <div><label for="cfgCtaFont" data-i18n="font.cta">Font della barra CTA</label><select id="cfgCtaFont" style="width:100%;"></select></div>
           </div>
           <div class="row-2" style="margin-top:8px;">
-            <div><label for="cfgTitleWeight">Peso del titolo</label><select id="cfgTitleWeight" style="width:100%;"></select></div>
-            <div><label for="cfgCtaWeight">Peso della CTA</label><select id="cfgCtaWeight" style="width:100%;"></select></div>
+            <div><label for="cfgTitleWeight" data-i18n="font.titleWeight">Peso del titolo</label><select id="cfgTitleWeight" style="width:100%;"></select></div>
+            <div><label for="cfgCtaWeight" data-i18n="font.ctaWeight">Peso della CTA</label><select id="cfgCtaWeight" style="width:100%;"></select></div>
           </div>
         </div>
 
         <div class="control-group">
-          <label><span>Logo / watermark</span><span>Per il sito corrente</span></label>
-          <label class="check-row"><input id="cfgWatermarkEnabled" type="checkbox"> Mostra logo sulla storia</label>
+          <label><span data-i18n="logo.title">Logo / watermark</span><span data-i18n="logo.sub">Per il sito corrente</span></label>
+          <label class="check-row"><input id="cfgWatermarkEnabled" type="checkbox"> <span data-i18n="logo.show">Mostra logo sulla storia</span></label>
           <input type="file" id="cfgLogoFile" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="width:100%;margin:7px 0;">
           <div class="logo-line">
-            <img id="logoPreview" alt="Anteprima logo" hidden>
+            <img id="logoPreview" alt="Anteprima logo" data-i18n-attr="alt:logo.previewAlt" hidden>
             <span id="logoInfo">Nessun logo caricato</span>
-            <button type="button" id="btnRemoveLogo" class="secondary">Rimuovi</button>
+            <button type="button" id="btnRemoveLogo" class="secondary" data-i18n="common.remove">Rimuovi</button>
           </div>
           <div class="row-2" style="margin-top:10px;">
-            <div><label for="cfgWatermarkOpacity">Opacità <span id="lblWatermarkOpacity">35%</span></label><input type="range" id="cfgWatermarkOpacity" min="10" max="100" value="35"></div>
-            <div><label for="cfgWatermarkSize">Dimensione <span id="lblWatermarkSize">180 px</span></label><input type="range" id="cfgWatermarkSize" min="80" max="360" value="180"></div>
+            <div><label for="cfgWatermarkOpacity"><span data-i18n="logo.opacity">Opacità</span> <span id="lblWatermarkOpacity">35%</span></label><input type="range" id="cfgWatermarkOpacity" min="10" max="100" value="35"></div>
+            <div><label for="cfgWatermarkSize"><span data-i18n="logo.size">Dimensione</span> <span id="lblWatermarkSize">180 px</span></label><input type="range" id="cfgWatermarkSize" min="80" max="360" value="180"></div>
           </div>
-          <label for="cfgWatermarkPosition" style="margin-top:10px;">Posizione</label>
+          <label for="cfgWatermarkPosition" style="margin-top:10px;" data-i18n="logo.position">Posizione</label>
           <select id="cfgWatermarkPosition" style="width:100%;">
-            <option value="top-right">In alto a destra</option>
-            <option value="top-left">In alto a sinistra</option>
-            <option value="photo-right">Sulla foto, in basso a destra</option>
-            <option value="photo-left">Sulla foto, in basso a sinistra</option>
+            <option value="top-right" data-i18n="wm.topRight">In alto a destra</option>
+            <option value="top-left" data-i18n="wm.topLeft">In alto a sinistra</option>
+            <option value="photo-right" data-i18n="wm.photoRight">Sulla foto, in basso a destra</option>
+            <option value="photo-left" data-i18n="wm.photoLeft">Sulla foto, in basso a sinistra</option>
           </select>
         </div>
 
         <div class="control-group">
           <label>
-            <span>Inquadratura Foto</span>
-            <button type="button" id="btnResetPhoto" style="padding:2px 6px;font-size:11px;">Centra Foto</button>
+            <span data-i18n="photo.title">Inquadratura Foto</span>
+            <button type="button" id="btnResetPhoto" style="padding:2px 6px;font-size:11px;" data-i18n="photo.center">Centra Foto</button>
           </label>
           <div class="row-2">
             <div>
-              <label>Zoom Foto <span id="lblZoom">100%</span></label>
+              <label><span data-i18n="photo.zoom">Zoom Foto</span> <span id="lblZoom">100%</span></label>
               <input type="range" id="rngZoom" min="50" max="250" value="100">
             </div>
             <div>
-              <label>Mostra Guida Sticker</label>
+              <label data-i18n="photo.guide">Mostra Guida Sticker</label>
               <input type="checkbox" id="chkGuide" checked style="width:18px;height:18px;margin-top:4px;">
             </div>
           </div>
         </div>
 
         <div class="control-group preset-actions">
-          <button type="button" class="primary" id="btnSaveDefaultsVisible">💾 Imposta stile predefinito</button>
-          <button type="button" class="secondary" id="btnResetStoryVisible">↩ Ripristina storia</button>
+          <button type="button" class="primary" id="btnSaveDefaultsVisible" data-i18n="preset.save">💾 Imposta stile predefinito</button>
+          <button type="button" class="secondary" id="btnResetStoryVisible" data-i18n="preset.reset">↩ Ripristina storia</button>
         </div>
       </div>
 
       <div class="control-group" id="boxSettings" style="display:none;">
-        <label><span>Configurazione Brand & Canali</span></label>
+        <label><span data-i18n="set.title">Configurazione Brand & Canali</span></label>
         <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
-          <label for="cfgMetaTarget">Nome della pagina su cui pubblicare (come lo scrive Meta)</label>
-          <input type="text" id="cfgMetaTarget" value="" placeholder="Es. Nome della Pagina e nome_profilo">
-          <button type="button" id="btnMetaTargetHelp" class="link-button">Dove trovo questo nome?</button>
-          <label for="cfgGeminiKey">Chiave API Gemini (titoli alternativi)</label>
+          <label for="cfgMetaTarget" data-i18n="set.metaTarget">Nome della pagina su cui pubblicare (come lo scrive Meta)</label>
+          <input type="text" id="cfgMetaTarget" value="" placeholder="Es. Nome della Pagina e nome_profilo" data-i18n-attr="placeholder:set.metaTargetPlaceholder">
+          <button type="button" id="btnMetaTargetHelp" class="link-button" data-i18n="set.metaHelp">Dove trovo questo nome?</button>
+          <label for="cfgGeminiKey" data-i18n="set.geminiKey">Chiave API Gemini (titoli alternativi)</label>
           <input type="password" id="cfgGeminiKey" placeholder="AIzaSy..." autocomplete="off">
-          <label for="cfgAiModel">Modello AI (facoltativo)</label>
-          <input type="text" id="cfgAiModel" placeholder="Automatico" autocomplete="off">
-          <button type="button" id="btnSaveDefaults" class="primary">💾 Salva stile predefinito</button>
-          <button type="button" id="btnResetStory" class="secondary">↩ Ripristina storia</button>
+          <label for="cfgAiModel" data-i18n="set.aiModel">Modello AI (facoltativo)</label>
+          <input type="text" id="cfgAiModel" placeholder="Automatico" data-i18n-attr="placeholder:set.aiModelPlaceholder" autocomplete="off">
+          <button type="button" id="btnSaveDefaults" class="primary" data-i18n="set.saveDefaults">💾 Salva stile predefinito</button>
+          <button type="button" id="btnResetStory" class="secondary" data-i18n="preset.reset">↩ Ripristina storia</button>
         </div>
       </div>
 
       <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <button class="primary" id="btnAddQueue" style="flex:1;padding:12px;">➕ Aggiungi Storia in Coda</button>
-        <button class="secondary" id="btnDownload" title="Scarica JPG">💾</button>
+        <button class="primary" id="btnAddQueue" style="flex:1;padding:12px;" data-i18n="queue.add">➕ Aggiungi Storia in Coda</button>
+        <button class="secondary" id="btnDownload" title="Scarica JPG" data-i18n-attr="title:queue.downloadTitle">💾</button>
       </div>
 
       <div class="control-group">
         <label>
-          <span>3. Coda Pronta (<b id="queueCount">0</b>)</span>
-          <button type="button" id="btnClearQueue" style="padding:2px 6px;font-size:11px;">Svuota</button>
+          <span><span data-i18n="queue.title">3. Coda Pronta</span> (<b id="queueCount">0</b>)</span>
+          <button type="button" id="btnClearQueue" style="padding:2px 6px;font-size:11px;" data-i18n="queue.clear">Svuota</button>
         </label>
         <div class="queue-list" id="queueList">
-          <p class="small-note">Modifica una o più storie e clicca su "Aggiungi in Coda".</p>
+          <p class="small-note" data-i18n="queue.empty">Modifica una o più storie e clicca su “Aggiungi in Coda”.</p>
         </div>
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <button class="success" id="btnPublishQueue" disabled style="flex:1;padding:12px;font-size:13.5px;">Pubblica storie</button>
-          <button class="secondary" id="btnTestQueue" disabled>🧪 Test</button>
+          <button class="success" id="btnPublishQueue" disabled style="flex:1;padding:12px;font-size:13.5px;" data-i18n="queue.publish">Pubblica storie</button>
+          <button class="secondary" id="btnTestQueue" disabled data-i18n="queue.test">🧪 Test</button>
         </div>
-        <button type="button" id="btnLastReport" class="secondary" style="margin-top:8px;font-size:11px;width:100%;text-align:left">Visualizza l’ultimo report di pubblicazione ↗</button>
+        <button type="button" id="btnLastReport" class="secondary" style="margin-top:8px;font-size:11px;width:100%;text-align:left" data-i18n="queue.lastReport">Visualizza l’ultimo report di pubblicazione ↗</button>
         <div id="extensionGate" class="extension-gate" role="status">
           <span class="gate-indicator" aria-hidden="true"></span>
           <div>
-            <strong>Motore di pubblicazione non collegato</strong>
-            <p>Usa l'app StoryFlow per Windows/Mac o per Android: il motore è già integrato. In alternativa puoi usare l'estensione Chrome.</p>
+            <strong data-i18n="gate.title">Motore di pubblicazione non collegato</strong>
+            <p data-i18n="gate.text">Usa l'app StoryFlow per Windows/Mac o per Android: il motore è già integrato. In alternativa puoi usare l'estensione Chrome.</p>
           </div>
-          <button type="button" id="btnRecheckExtension" class="secondary">Rileva</button>
-          <button type="button" id="btnOpenExtensionGate" class="secondary">Scarica</button>
+          <button type="button" id="btnRecheckExtension" class="secondary" data-i18n="gate.detect">Rileva</button>
+          <button type="button" id="btnOpenExtensionGate" class="secondary" data-i18n="gate.download">Scarica</button>
         </div>
       </div>
     </div>
@@ -255,22 +256,22 @@
 </div>
 
 <!-- BARRA DI NAVIGAZIONE MOBILE A 3 TAB -->
-<nav class="mobile-tabbar" aria-label="Navigazione Mobile">
+<nav class="mobile-tabbar" aria-label="Navigazione Mobile" data-i18n-attr="aria-label:mob.aria">
   <button type="button" class="mobile-tab-btn active" data-tab="news">
-    <span>📰</span><small>Notizie</small>
+    <span>📰</span><small data-i18n="mob.news">Notizie</small>
   </button>
   <button type="button" class="mobile-tab-btn" data-tab="studio">
-    <span>🎨</span><small>Anteprima</small>
+    <span>🎨</span><small data-i18n="mob.preview">Anteprima</small>
   </button>
   <button type="button" class="mobile-tab-btn" data-tab="editor">
-    <span>🚀</span><small>Editor & Coda (<b id="mobQueueBadge">0</b>)</small>
+    <span>🚀</span><small><span data-i18n="mob.editor">Editor & Coda</span> (<b id="mobQueueBadge">0</b>)</small>
   </button>
 </nav>
 
 <!-- SCHERMATA DI PUBBLICAZIONE: copre il pannello finché la coda è in corso e non si può chiudere -->
 <div class="publish-stage" id="publishStage" role="dialog" aria-modal="true" aria-labelledby="psTitle" hidden>
   <div class="ps-inner">
-    <div class="ps-top"><span class="publish-icon">SF</span><span class="ps-kicker">STORYFLOW · PUBBLICAZIONE IN CORSO</span></div>
+    <div class="ps-top"><span class="publish-icon">SF</span><span class="ps-kicker" data-i18n="ps.kicker">STORYFLOW · PUBBLICAZIONE IN CORSO</span></div>
     <div class="ps-card" id="psCard">
       <img id="psImage" alt="" hidden>
       <div class="ps-grid" aria-hidden="true"></div>
@@ -279,14 +280,14 @@
     </div>
     <div class="ps-info">
       <p class="ps-count" id="psCount">Storia 1 di 1</p>
-      <h2 id="psTitle">Preparazione della pubblicazione</h2>
+      <h2 id="psTitle" data-i18n="ps.preparing">Preparazione della pubblicazione</h2>
       <div class="ps-track"><div id="psFill" style="width:0%"></div></div>
       <p class="ps-status" id="psStatus" aria-live="polite">Preparazione della storia…</p>
     </div>
     <div class="ps-strip" id="psStrip" aria-hidden="true"></div>
-    <button type="button" id="btnStopAfter" class="ps-stop" hidden>Ferma la coda dopo questa storia</button>
+    <button type="button" id="btnStopAfter" class="ps-stop" hidden data-i18n="ps.stopAfter">Ferma la coda dopo questa storia</button>
     <p class="ps-note" id="psNote">Tieni aperta l'app: lo schermo resterà acceso fino alla fine.</p>
-    <button type="button" id="btnStageClose" class="ps-close" hidden>Chiudi</button>
+    <button type="button" id="btnStageClose" class="ps-close" hidden data-i18n="common.close">Chiudi</button>
   </div>
 </div>
 
@@ -294,18 +295,18 @@
   <div class="publish-dialog" role="dialog" aria-modal="true" aria-labelledby="publishTitle">
     <div class="publish-top">
       <span class="publish-icon">SF</span>
-      <span class="publish-kicker">STORYFLOW / CENTRO PUBBLICAZIONI</span>
-      <button type="button" id="btnCloseProgress" title="Chiudi pannello">×</button>
+      <span class="publish-kicker" data-i18n="pm.kicker">STORYFLOW / CENTRO PUBBLICAZIONI</span>
+      <button type="button" id="btnCloseProgress" title="Chiudi pannello" data-i18n-attr="title:pm.closeTitle">×</button>
     </div>
     <h2 id="publishTitle">Preparazione della pubblicazione</h2>
     <p id="publishSub">Elaborazione automatica in corso.</p>
     <div class="progress-track"><div id="progressFill" style="width:0%"></div></div>
     <div class="progress-meta"><span id="progressCount">Storia 1 di 1</span><span id="progressPct">0%</span></div>
     <ol class="progress-steps" id="progressSteps">
-      <li data-stage="start">Preparazione</li>
-      <li data-stage="image">Elaborazione</li>
-      <li data-stage="link">Collegamenti</li>
-      <li data-stage="publish">Completamento</li>
+      <li data-stage="start" data-i18n="pm.stepStart">Preparazione</li>
+      <li data-stage="image" data-i18n="pm.stepImage">Elaborazione</li>
+      <li data-stage="link" data-i18n="pm.stepLink">Collegamenti</li>
+      <li data-stage="publish" data-i18n="pm.stepPublish">Completamento</li>
     </ol>
     <div class="progress-last" id="progressLast" aria-live="polite">Preparazione…</div>
 
@@ -314,31 +315,31 @@
         <strong id="publishOutcomeTitle">Esito positivo</strong>
         <span id="publishOutcomeDesc">Operazione conclusa correttamente.</span>
       </div>
-      <button type="button" id="btnFixChannel" class="secondary" style="padding:8px 14px;" hidden>Sistema il nome della pagina</button>
-      <button type="button" id="btnOutcomeDone" class="primary" style="padding:8px 14px;">Chiudi</button>
+      <button type="button" id="btnFixChannel" class="secondary" style="padding:8px 14px;" hidden data-i18n="pm.fixChannel">Sistema il nome della pagina</button>
+      <button type="button" id="btnOutcomeDone" class="primary" style="padding:8px 14px;" data-i18n="common.close">Chiudi</button>
     </div>
 
     <section id="publishDiagnosis" class="publish-diagnosis" hidden>
-      <div class="publish-diagnosis-head"><strong>Dettagli tecnici</strong><button type="button" id="btnCopyError">Copia rapporto</button></div>
+      <div class="publish-diagnosis-head"><strong data-i18n="pm.diagTitle">Dettagli tecnici</strong><button type="button" id="btnCopyError" data-i18n="pm.copyReport">Copia rapporto</button></div>
       <p id="publishFailureStage" class="publish-diagnosis-stage">Fase non disponibile</p>
       <pre id="publishFailureMessage" class="publish-diagnosis-message"></pre>
-      <details><summary>Mostra registro tecnico</summary><pre id="publishTechnicalLog"></pre></details>
+      <details><summary data-i18n="pm.showLog">Mostra registro tecnico</summary><pre id="publishTechnicalLog"></pre></details>
     </section>
-    <p class="progress-footnote">La lavorazione viene eseguita nel browser desktop integrato dell'app.</p>
-    <button type="button" id="btnRevealWork" class="secondary" hidden>Mostra finestra di lavoro Meta</button>
+    <p class="progress-footnote" data-i18n="pm.footnote">La lavorazione viene eseguita nel browser desktop integrato dell'app.</p>
+    <button type="button" id="btnRevealWork" class="secondary" hidden data-i18n="pm.revealWork">Mostra finestra di lavoro Meta</button>
   </div>
 </div>
 
 <div id="extensionModal" class="modal-backdrop" hidden>
   <div class="install-dialog" role="dialog" aria-modal="true">
-    <div class="install-header"><h2>Scarica StoryFlow</h2><button type="button" id="btnCloseExtension">✕</button></div>
-    <p>Le app StoryFlow integrano già il motore di pubblicazione: installa, accedi a Meta Business Suite una volta con il tuo normale account e pubblica.</p>
+    <div class="install-header"><h2 data-i18n="dl.title">Scarica StoryFlow</h2><button type="button" id="btnCloseExtension">✕</button></div>
+    <p data-i18n="dl.text">Le app StoryFlow integrano già il motore di pubblicazione: installa, accedi a Meta Business Suite una volta con il tuo normale account e pubblica.</p>
     <div class="download-grid">
-      <a class="download-extension" href="download/StoryFlowStudio-Setup.exe">⬇️ App per Windows</a>
-      <a class="download-extension" href="download/StoryFlowStudio.dmg">⬇️ App per Mac</a>
-      <a class="download-extension secondary-download" href="download/StoryFlow.apk">⬇️ App per Android</a>
+      <a class="download-extension" href="download/StoryFlowStudio-Setup.exe" data-i18n="dl.win">⬇️ App per Windows</a>
+      <a class="download-extension" href="download/StoryFlowStudio.dmg" data-i18n="dl.mac">⬇️ App per Mac</a>
+      <a class="download-extension secondary-download" href="download/StoryFlow.apk" data-i18n="dl.android">⬇️ App per Android</a>
     </div>
-    <p class="small-note">Preferisci restare su Chrome? <a href="storyflow-extension.zip" download="storyflow-extension.zip">Scarica l'estensione (.zip)</a>: si installa in modalità sviluppatore.</p>
+    <p class="small-note" data-i18n-html="dl.chrome">Preferisci restare su Chrome? <a href="storyflow-extension.zip" download="storyflow-extension.zip">Scarica l'estensione (.zip)</a>: si installa in modalità sviluppatore.</p>
   </div>
 </div>
 
@@ -347,120 +348,127 @@
   <div class="onboarding-dialog" role="dialog" aria-modal="true" aria-labelledby="obHeading">
     <div class="publish-top">
       <span class="publish-icon">SF</span>
-      <span class="publish-kicker">STORYFLOW / PRIMI PASSI</span>
-      <button type="button" id="btnObClose" title="Chiudi la guida">×</button>
+      <span class="publish-kicker" data-i18n="ob.kicker">STORYFLOW / PRIMI PASSI</span>
+      <select id="obLangSelect" class="lang-select" data-lang-select aria-label="Lingua" data-i18n-attr="aria-label:lang.label"></select>
+      <button type="button" id="btnObClose" title="Chiudi la guida" data-i18n-attr="title:ob.closeTitle">×</button>
     </div>
     <ol class="ob-steps" id="obSteps">
-      <li data-step="0"><span>1</span>Il tuo sito</li>
-      <li data-step="1"><span>2</span>I tuoi colori</li>
-      <li data-step="2"><span>3</span>Accesso a Meta</li>
-      <li data-step="3"><span>4</span>Dove pubblichiamo</li>
+      <li data-step="0"><span>1</span><i data-i18n="ob.s1">Il tuo sito</i></li>
+      <li data-step="1"><span>2</span><i data-i18n="ob.s2">I tuoi colori</i></li>
+      <li data-step="2"><span>3</span><i data-i18n="ob.s3">Accesso a Meta</i></li>
+      <li data-step="3"><span>4</span><i data-i18n="ob.s4">Dove pubblichiamo</i></li>
     </ol>
-    <h2 id="obHeading" class="ob-sr">Primi passi</h2>
+    <h2 id="obHeading" class="ob-sr" data-i18n="ob.heading">Primi passi</h2>
 
     <section class="ob-step" data-step="0">
-      <h3>Da dove prendiamo le notizie?</h3>
-      <p>Scrivi l’indirizzo del tuo sito o del tuo blog: StoryFlow ne legge gli ultimi articoli e li trasforma in storie pronte da pubblicare.</p>
-      <label for="obSite">Indirizzo del sito</label>
+      <h3 data-i18n="ob.siteTitle">Da dove prendiamo le notizie?</h3>
+      <p data-i18n="ob.siteText">Scrivi l’indirizzo del tuo sito o del tuo blog: StoryFlow ne legge gli ultimi articoli e li trasforma in storie pronte da pubblicare.</p>
+      <label for="obSite" data-i18n="ob.siteLabel">Indirizzo del sito</label>
       <div class="ob-inline">
-        <input type="url" id="obSite" placeholder="https://iltuosito.it">
-        <button type="button" id="btnObFetch" class="secondary">Prova</button>
+        <input type="url" id="obSite" placeholder="https://iltuosito.it" data-i18n-attr="placeholder:ob.sitePlaceholder">
+        <button type="button" id="btnObFetch" class="secondary" data-i18n="ob.try">Prova</button>
       </div>
       <p class="ob-feedback" id="obSiteFeedback" aria-live="polite"></p>
     </section>
 
     <section class="ob-step" data-step="1" hidden>
-      <h3>Diamo alle storie il tuo stile</h3>
-      <p>Scegli il colore principale e quello delle parti scure. Potrai cambiare tutto, anche font e logo, da «Personalizza grafica».</p>
+      <h3 data-i18n="ob.styleTitle">Diamo alle storie il tuo stile</h3>
+      <p data-i18n="ob.styleText">Scegli il colore principale e quello delle parti scure. Potrai cambiare tutto, anche font e logo, da «Personalizza grafica».</p>
       <div class="ob-style">
         <div class="ob-style-controls">
-          <label for="obColor">Colore principale</label>
+          <label for="obColor" data-i18n="ob.mainColor">Colore principale</label>
           <input type="color" id="obColor" class="color-control">
-          <label for="obDarkColor">Colore delle parti scure</label>
+          <label for="obDarkColor" data-i18n="ob.darkColor">Colore delle parti scure</label>
           <input type="color" id="obDarkColor" class="color-control">
-          <label for="obPattern">Motivo di sfondo</label>
+          <label for="obPattern" data-i18n="ob.pattern">Motivo di sfondo</label>
           <select id="obPattern"></select>
           <div class="ob-lucky">
-            <p>Non sai da dove partire? Ti proponiamo noi colori, font e motivo, sempre ben leggibili.</p>
+            <p data-i18n="ob.luckyText">Non sai da dove partire? Ti proponiamo noi colori, font e motivo, sempre ben leggibili.</p>
             <div class="lucky-actions">
-              <button type="button" class="primary" id="btnObLucky">🎲 Mi sento fortunato</button>
-              <button type="button" class="secondary" id="btnObLuckyBack" disabled title="Torna alla combinazione precedente">↶ Indietro</button>
+              <button type="button" class="primary" id="btnObLucky" data-i18n="lucky.button">🎲 Mi sento fortunato</button>
+              <button type="button" class="secondary" id="btnObLuckyBack" disabled title="Torna alla combinazione precedente" data-i18n="lucky.back" data-i18n-attr="title:lucky.backTitle">↶ Indietro</button>
             </div>
           </div>
         </div>
-        <canvas id="obPreview" width="216" height="384" aria-label="Anteprima della storia"></canvas>
+        <canvas id="obPreview" width="216" height="384" aria-label="Anteprima della storia" data-i18n-attr="aria-label:ob.previewAria"></canvas>
       </div>
     </section>
 
     <section class="ob-step" data-step="2" hidden>
-      <h3>Colleghiamo Meta Business Suite</h3>
-      <p>Le storie escono attraverso Meta Business Suite, lo strumento gratuito di Meta per gestire Pagine Facebook e profili Instagram. Basta accedere una volta con il tuo solito account Facebook.</p>
+      <h3 data-i18n="ob.metaTitle">Colleghiamo Meta Business Suite</h3>
+      <p data-i18n="ob.metaText">Le storie escono attraverso Meta Business Suite, lo strumento gratuito di Meta per gestire Pagine Facebook e profili Instagram. Basta accedere una volta con il tuo solito account Facebook.</p>
       <div class="ob-note ob-safe">
-        <strong>🔒 I tuoi dati restano tuoi</strong>
-        <span>L’accesso avviene direttamente sul sito di Meta e resta salvato solo su questo dispositivo. StoryFlow non vede e non salva né il nome utente né la password.</span>
+        <strong data-i18n="ob.safeTitle">🔒 I tuoi dati restano tuoi</strong>
+        <span data-i18n="ob.safeText">L’accesso avviene direttamente sul sito di Meta e resta salvato solo su questo dispositivo. StoryFlow non vede e non salva né il nome utente né la password.</span>
       </div>
-      <button type="button" id="btnObMetaLogin" class="primary ob-wide">Apri Meta Business Suite</button>
+      <button type="button" id="btnObMetaLogin" class="primary ob-wide" data-i18n="ob.openMeta">Apri Meta Business Suite</button>
       <p class="ob-feedback" id="obMetaFeedback" aria-live="polite"></p>
       <details class="ob-details">
-        <summary>Non hai ancora Meta Business Suite?</summary>
-        <p>Nessun problema: è gratuito e ti serve solo il tuo account Facebook.</p>
+        <summary data-i18n="ob.noSuiteSummary">Non hai ancora Meta Business Suite?</summary>
+        <p data-i18n="ob.noSuiteIntro">Nessun problema: è gratuito e ti serve solo il tuo account Facebook.</p>
         <ol>
-          <li>Vai su <a href="https://business.facebook.com/" target="_blank" rel="noopener">business.facebook.com</a> e accedi con Facebook.</li>
-          <li>Se è la prima volta, Meta ti chiede qualche dato sulla tua attività (nome, email): bastano un paio di minuti.</li>
-          <li>Aggiungi la tua <strong>Pagina Facebook</strong> e il tuo <strong>profilo Instagram</strong>: lo trovi nelle <strong>Impostazioni</strong> di Meta Business Suite, nella parte dedicata agli account (voci «Pagine» e «Account Instagram»).</li>
-          <li>Il profilo Instagram deve essere <strong>professionale</strong> («Azienda» o «Creator»): si passa gratis dalle impostazioni dell’app Instagram.</li>
+          <li data-i18n-html="ob.noSuite1">Vai su <a href="https://business.facebook.com/" target="_blank" rel="noopener">business.facebook.com</a> e accedi con Facebook.</li>
+          <li data-i18n="ob.noSuite2">Se è la prima volta, Meta ti chiede qualche dato sulla tua attività (nome, email): bastano un paio di minuti.</li>
+          <li data-i18n-html="ob.noSuite3">Aggiungi la tua <strong>Pagina Facebook</strong> e il tuo <strong>profilo Instagram</strong>: lo trovi nelle <strong>Impostazioni</strong> di Meta Business Suite, nella parte dedicata agli account (voci «Pagine» e «Account Instagram»).</li>
+          <li data-i18n-html="ob.noSuite4">Il profilo Instagram deve essere <strong>professionale</strong> («Azienda» o «Creator»): si passa gratis dalle impostazioni dell’app Instagram.</li>
         </ol>
-        <p class="ob-warn">⚠️ Senza Pagina e profilo collegati a Meta Business Suite, StoryFlow non ha dove pubblicare.</p>
-        <p class="small-note">Meta cambia spesso i nomi dei menu: se non trovi una voce, cerca «Pagine» o «Account Instagram» nelle Impostazioni.</p>
+        <p class="ob-warn" data-i18n="ob.noSuiteWarn">⚠️ Senza Pagina e profilo collegati a Meta Business Suite, StoryFlow non ha dove pubblicare.</p>
+        <p class="small-note" data-i18n="ob.noSuiteNote">Meta cambia spesso i nomi dei menu: se non trovi una voce, cerca «Pagine» o «Account Instagram» nelle Impostazioni.</p>
       </details>
     </section>
 
     <section class="ob-step" data-step="3" hidden>
-      <h3>Su quale pagina pubblichiamo?</h3>
-      <p>L’ultimo passo, ma il più importante. Prima di ogni pubblicazione StoryFlow controlla che Meta sia aperto proprio sulla tua pagina, cercandone il nome <strong>scritto esattamente come lo scrive Meta</strong>. Così una storia non finisce mai nel posto sbagliato.</p>
+      <h3 data-i18n="ob.targetTitle">Su quale pagina pubblichiamo?</h3>
+      <p data-i18n-html="ob.targetText">L’ultimo passo, ma il più importante. Prima di ogni pubblicazione StoryFlow controlla che Meta sia aperto proprio sulla tua pagina, cercandone il nome <strong>scritto esattamente come lo scrive Meta</strong>. Così una storia non finisce mai nel posto sbagliato.</p>
 
       <div class="ob-note ob-both">
-        <strong>📣 Facebook e Instagram in un colpo solo</strong>
-        <span>Se la tua Pagina Facebook è collegata al profilo Instagram, Meta Business Suite pubblica la stessa storia su tutti e due insieme e li mostra uno accanto all’altro, per esempio «Nome della Pagina e nome_profilo». Usa tutta la scritta, «e» compresa: così StoryFlow controlla che siano selezionati entrambi e, se ne manca uno, si ferma invece di pubblicare a metà.</span>
+        <strong data-i18n="ob.bothTitle">📣 Facebook e Instagram in un colpo solo</strong>
+        <span data-i18n="ob.bothText">Se la tua Pagina Facebook è collegata al profilo Instagram, Meta Business Suite pubblica la stessa storia su tutti e due insieme e li mostra uno accanto all’altro, per esempio «Nome della Pagina e nome_profilo». Usa tutta la scritta, «e» compresa: così StoryFlow controlla che siano selezionati entrambi e, se ne manca uno, si ferma invece di pubblicare a metà.</span>
       </div>
 
       <div class="ob-note ob-auto" id="obPickBox" hidden>
-        <strong>✨ Il modo più semplice</strong>
-        <span>Apriamo la pagina di Meta in cui si creano le storie: tu clicchi sul nome della tua pagina e lo copiamo noi, lettera per lettera. Se ci sono Pagina e profilo insieme, ti chiediamo se vuoi tutta la scritta.</span>
-        <button type="button" id="btnObPick" class="primary ob-wide">Trova il nome in Meta</button>
-        <button type="button" id="btnObPickCancel" class="secondary ob-wide" hidden>Annulla</button>
+        <strong data-i18n="ob.autoTitle">✨ Il modo più semplice</strong>
+        <span data-i18n="ob.autoText">Apriamo la pagina di Meta in cui si creano le storie: tu clicchi sul nome della tua pagina e lo copiamo noi, lettera per lettera. Se ci sono Pagina e profilo insieme, ti chiediamo se vuoi tutta la scritta.</span>
+        <button type="button" id="btnObPick" class="primary ob-wide" data-i18n="ob.pick">Trova il nome in Meta</button>
+        <button type="button" id="btnObPickCancel" class="secondary ob-wide" hidden data-i18n="common.cancel">Annulla</button>
       </div>
 
-      <label for="obMetaTarget" id="obTargetLabel">Nome della pagina</label>
+      <label for="obMetaTarget" id="obTargetLabel" data-i18n="ob.targetLabel">Nome della pagina</label>
       <div class="ob-inline">
-        <input type="text" id="obMetaTarget" placeholder="Es. Nome della Pagina e nome_profilo" autocomplete="off" spellcheck="false">
-        <button type="button" id="btnObVerify" class="secondary" hidden>Verifica</button>
+        <input type="text" id="obMetaTarget" placeholder="Es. Nome della Pagina e nome_profilo" data-i18n-attr="placeholder:set.metaTargetPlaceholder" autocomplete="off" spellcheck="false">
+        <button type="button" id="btnObVerify" class="secondary" hidden data-i18n="ob.verify">Verifica</button>
       </div>
       <div class="ob-result" id="obTargetResult" aria-live="polite" hidden></div>
 
       <details class="ob-details" id="obManual">
-        <summary>Preferisci copiarlo a mano? Ecco dove si trova</summary>
+        <summary data-i18n="ob.manualSummary">Preferisci copiarlo a mano? Ecco dove si trova</summary>
         <ol class="ob-guide">
-          <li>Apri la pagina di Meta Business Suite per creare le storie: <a href="https://business.facebook.com/latest/story_composer/" target="_blank" rel="noopener">business.facebook.com/latest/story_composer</a>. Se hai più pagine, controlla che sia selezionata quella giusta.</li>
-          <li>Cerca il riquadro che indica <strong>dove verrà pubblicata la storia</strong>: accanto all’immagine del profilo ci sono il nome della tua Pagina Facebook e, se è collegato, quello del profilo Instagram.</li>
-          <li>Copia il nome <strong>esattamente com’è</strong>: maiuscole, spazi, punti e trattini compresi. Se pubblichi su Facebook e Instagram insieme, copia tutta la scritta, «e» compresa.</li>
-          <li>Incollalo nella casella qui sopra.</li>
+          <li data-i18n-html="ob.manual1">Apri la pagina di Meta Business Suite per creare le storie: <a href="https://business.facebook.com/latest/story_composer/" target="_blank" rel="noopener">business.facebook.com/latest/story_composer</a>. Se hai più pagine, controlla che sia selezionata quella giusta.</li>
+          <li data-i18n-html="ob.manual2">Cerca il riquadro che indica <strong>dove verrà pubblicata la storia</strong>: accanto all’immagine del profilo ci sono il nome della tua Pagina Facebook e, se è collegato, quello del profilo Instagram.</li>
+          <li data-i18n-html="ob.manual3">Copia il nome <strong>esattamente com’è</strong>: maiuscole, spazi, punti e trattini compresi. Se pubblichi su Facebook e Instagram insieme, copia tutta la scritta, «e» compresa.</li>
+          <li data-i18n="ob.manual4">Incollalo nella casella qui sopra.</li>
         </ol>
         <figure class="ob-figure">
-          <img id="obGuideImage" src="onboarding/dove-pubblichiamo.svg" alt="Schema della pagina per creare le storie: la scritta da copiare, con il nome della Pagina e quello del profilo Instagram, è nel riquadro che indica dove verrà pubblicata la storia">
-          <figcaption id="obGuideCaption">Illustrazione semplificata: l’aspetto reale di Meta Business Suite può essere diverso.</figcaption>
+          <img id="obGuideImage" src="onboarding/dove-pubblichiamo.svg" data-i18n-attr="alt:ob.guideAlt" alt="Schema della pagina per creare le storie: la scritta da copiare, con il nome della Pagina e quello del profilo Instagram, è nel riquadro che indica dove verrà pubblicata la storia">
+          <figcaption id="obGuideCaption" data-i18n="ob.guideCaption">Illustrazione semplificata: l’aspetto reale di Meta Business Suite può essere diverso.</figcaption>
         </figure>
       </details>
     </section>
 
     <div class="ob-nav">
-      <button type="button" id="btnObBack" class="secondary">← Indietro</button>
+      <button type="button" id="btnObBack" class="secondary" data-i18n="ob.back">← Indietro</button>
       <span id="obCount">1 di 4</span>
-      <button type="button" id="btnObNext" class="primary">Avanti →</button>
+      <button type="button" id="btnObNext" class="primary" data-i18n="ob.next">Avanti →</button>
     </div>
   </div>
 </div>
 
-<script src="studio.js?v=4.2.1" defer></script>
+<script src="i18n/it.js?v=4.3.0" defer></script>
+<script src="i18n/en.js?v=4.3.0" defer></script>
+<script src="i18n/es.js?v=4.3.0" defer></script>
+<script src="i18n/pt.js?v=4.3.0" defer></script>
+<script src="i18n/fr.js?v=4.3.0" defer></script>
+<script src="i18n/i18n.js?v=4.3.0" defer></script>
+<script src="studio.js?v=4.3.0" defer></script>
 </body>
 </html>
