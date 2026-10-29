@@ -60,7 +60,7 @@
   'ed.intro': 'Sélectionnez un article, personnalisez le texte et le visuel, puis ajoutez-le à la file.',
   'ed.titleLabel': 'Titre dans la story',
   'ed.titlePlaceholder': 'Sélectionnez un article...',
-  'ed.stickerLabel': 'Texte du sticker lien (bouton cliquable)',
+  'ed.stickerLabel': 'Texte du sticker à lien (bouton cliquable)',
   'ed.stickerPlaceholder': 'Nom du site',
   'ed.ctaLabel': 'Texte de la barre d’appel à l’action',
   'ed.restoreTexts': '↩ Titre et textes d’origine',

@@ -63,7 +63,7 @@ Il motore riconosce i pulsanti in **italiano** e **inglese** e prova sempre prim
 
 Per raccogliere in un colpo solo tutte le etichette di una nuova lingua: imposta Facebook in quella lingua, apri il composer storie in Chrome, incolla `tools/cattura-etichette-meta.js` nella Console e fai a mano il percorso di una storia con adesivo link. Il pulsante viola in alto al centro della pagina di Meta copia l'elenco completo (testi dei pulsanti, `aria-label`, titoli delle finestre, avvisi).
 
-> I testi inglesi sono verificati su Meta reale (29/10/2026, con `tools/cattura-etichette-meta.js`), tranne la conferma «Discard changes», che il motore usa solo se compare. Spagnolo, portoghese e francese non sono ancora in `UI_LABELS`: con Meta in quelle lingue il motore prova le etichette italiane e inglesi.
+> Inglese, spagnolo, francese e portoghese sono verificati su Meta reale (29/10/2026, con `tools/cattura-etichette-meta.js`), tranne la conferma «Discard changes», che il motore usa solo se compare. Lo stesso vale per spagnolo (variante latinoamericana di Meta: «Agregar foto/video»…), francese e portoghese del Brasile. L'`aria-label` dell'adesivo link resta in inglese («Create link sticker») in tutte le lingue provate.
 
 ## App desktop (sostituisce l'estensione)
 

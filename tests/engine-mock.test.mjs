@@ -1,4 +1,4 @@
-// Prova il motore (engine/composer.js) sul finto composer Meta in italiano, inglese e tedesco.
+// Prova il motore (engine/composer.js) sul finto composer Meta in italiano, inglese, spagnolo, francese, portoghese e tedesco.
 //   node tests/engine-mock.test.mjs
 // Richiede Playwright con Chromium. Il tedesco non è supportato: serve a verificare che
 // l'errore elenchi i pulsanti visibili, così da poter aggiornare UI_LABELS in fretta.
@@ -63,7 +63,7 @@ function check(name, cond, detail = '') {
   if (!cond) failures++;
 }
 
-for (const lang of ['it', 'en']) {
+for (const lang of ['it', 'en', 'es', 'fr', 'pt']) {
   const test = await run(lang, true);
   const st = test.events.state;
   check(`[${lang}] test: coda conclusa`, test.events.finished, st?.log?.slice(-2).join(' / '));

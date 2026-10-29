@@ -2,7 +2,7 @@
 //   node tests/extension.test.mjs
 // La pagina business.facebook.com viene sostituita dal finto composer (tests/mock-composer.html).
 // Scenario 1: motore integrato (content script). Scenario 2: "Consenti script utente" attivo e
-// motore 4.1.2 firmato scaricato dal server simulato, con una chiave generata per il test.
+// motore 4.1.3 firmato scaricato dal server simulato, con una chiave generata per il test.
 import { createServer } from 'node:http';
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { createHash, generateKeyPairSync, sign } from 'node:crypto';
@@ -41,10 +41,10 @@ async function scenario({ userScripts }) {
     const spki = publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
     writeFileSync(join(extPath, 'engine-config.js'),
       `const ENGINE_MANIFEST_URL = 'https://giuseppe.rocks/storyflow/engine/manifest.json';\nconst ENGINE_PUBLIC_KEY = '${spki}';\n`);
-    const code = readFileSync(join(root, 'engine', 'composer.js'), 'utf8').replace("ENGINE_VERSION = '4.1.1'", "ENGINE_VERSION = '4.1.2'");
+    const code = readFileSync(join(root, 'engine', 'composer.js'), 'utf8').replace("ENGINE_VERSION = '4.1.2'", "ENGINE_VERSION = '4.1.3'");
     const sha256 = createHash('sha256').update(code).digest('hex');
-    const signature = sign('sha256', Buffer.from(`storyflow-engine\n4.1.2\n${sha256}\n1`), { key: privateKey, dsaEncoding: 'ieee-p1363' }).toString('base64');
-    remote = { code, manifest: { version: '4.1.2', file: 'composer.js', sha256, minClientApi: 1, signature } };
+    const signature = sign('sha256', Buffer.from(`storyflow-engine\n4.1.3\n${sha256}\n1`), { key: privateKey, dsaEncoding: 'ieee-p1363' }).toString('base64');
+    remote = { code, manifest: { version: '4.1.3', file: 'composer.js', sha256, minClientApi: 1, signature } };
   }
 
   const context = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), 'sf-ext-profile-')), {
@@ -74,7 +74,7 @@ async function scenario({ userScripts }) {
   }
   const engineInfo = await worker.evaluate(() => new Promise(res => chrome.storage.local.get(['sf_engine_active', 'sf_engine_error'], res)));
   check(`${label} motore registrato`, userScripts
-    ? engineInfo.sf_engine_active?.mode === 'user script' && engineInfo.sf_engine_active?.version === '4.1.2'
+    ? engineInfo.sf_engine_active?.mode === 'user script' && engineInfo.sf_engine_active?.version === '4.1.3'
     : engineInfo.sf_engine_active?.mode === 'content script', JSON.stringify(engineInfo));
 
   const page = await context.newPage();
@@ -106,7 +106,7 @@ async function scenario({ userScripts }) {
   check(`${label} test completato e riportato nel pannello`, /Test riuscito/.test(outcome || ''), (outcome || '').trim().replace(/\s+/g, ' '));
   const state = await worker.evaluate(() => new Promise(res => chrome.storage.local.get(['sf_state'], r => res(r.sf_state))));
   check(`${label} registro: adesivo verificato con il motore giusto`, (state?.log || []).some(l => l.startsWith('TEST OK'))
-    && (state?.log || []).some(l => l.startsWith(`Motore ${userScripts ? '4.1.2' : '4.1.1'}`)), (state?.log || []).slice(-3).join(' / '));
+    && (state?.log || []).some(l => l.startsWith(`Motore ${userScripts ? '4.1.3' : '4.1.2'}`)), (state?.log || []).slice(-3).join(' / '));
   check(`${label} nessun errore JavaScript nel pannello`, errors.length === 0, errors.join(' | '));
 
   await context.close();
