@@ -18,6 +18,9 @@ header { height:63px; min-height:63px; background:var(--ui-purple); padding:0 26
 .top-bar button.primary { background:#fff; color:#5038d3; border-color:#fff; }
 .top-bar .badge-ext { border-radius:3px; background:#ffffff1a; border:1px solid #ffffff38; color:#f1eefe; white-space:nowrap; padding:8px 10px; font-size:10px; }
 .top-bar .badge-ext.online { background:#dff9f0; color:#236e5a; border-color:#dff9f0; }
+.lang-select { height:35px; border-radius:4px; border:1px solid #ffffff38; background:#ffffff16; color:#fff; font-size:11px; font-weight:650; padding:0 6px; cursor:pointer; }
+.lang-select option { color:#1d1f27; }
+.publish-top .lang-select { height:28px; margin-left:auto; background:#fff; color:#3b3f4c; border-color:#dfe2ea; }
 
 .subnav { height:42px; min-height:42px; display:flex; align-items:center; gap:26px; padding:0 28px; background:#fff; border-bottom:1px solid var(--border); font-size:11px; color:#9499a6; }
 .subnav-current { height:100%; display:flex; align-items:center; border-bottom:2px solid var(--ui-purple); font-weight:700; color:var(--ui-purple); }
@@ -219,6 +222,7 @@ button.success { background:#20b49a; border-color:#20b49a; color:#fff; }
 .ob-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
 .ob-steps { list-style:none; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-bottom:16px; }
 .ob-steps li { display:flex; align-items:center; gap:7px; font-size:10.5px; font-weight:650; color:#a1a5b2; padding-bottom:9px; border-bottom:3px solid #eceef4; }
+.ob-steps li i { font-style:normal; }
 .ob-steps li span { display:grid; place-items:center; width:20px; height:20px; border-radius:99px; background:#eceef4; font-size:10px; flex-shrink:0; }
 .ob-steps li.done { color:#3f9a84; border-color:#9fdcc9; }
 .ob-steps li.done span { background:#39bf9a; color:#fff; }
@@ -283,6 +287,7 @@ button.success { background:#20b49a; border-color:#20b49a; color:#fff; }
   .top-bar { width:100%; flex-wrap:wrap; gap:6px; }
   .top-bar input[type=url] { flex:1; min-width:130px; height:32px; }
   .top-bar button { height:32px; padding:0 9px; font-size:10.5px; }
+  .top-bar .lang-select { height:32px; }
   .workspace { margin:0; flex:1; display:flex; flex-direction:column; height:calc(100dvh - 150px); overflow:hidden; }
   .col-news,.col-studio,.col-editor { display:none !important; height:100%; border:0; border-radius:0; }
   body[data-mobile-tab="news"] .col-news,

@@ -1,7 +1,9 @@
-/* StoryFlow Studio 4.1.0 — Supporto Desktop + Mobile Touch + App Native Bridge */
+/* StoryFlow Studio 4.3.0 — Supporto Desktop + Mobile Touch + App Native Bridge, pannello in più lingue (i18n/) */
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
+  const I18N = window.SF_I18N;
+  const t = I18N.t, tn = I18N.tn;
   const canvas = $('storyCanvas');
   const ctx = canvas.getContext('2d');
   const siteUrl = $('siteUrl');
@@ -62,19 +64,13 @@
     return options.reduce((best,w)=>Math.abs(w-n)<Math.abs(best-n)?w:best,options[0]);
   };
   const PATTERNS = [
-    ['halftone','Pois classici'],['none','Senza pattern'],['fine-dots','Micro pois'],
-    ['big-dots','Pois grandi'],['grid','Griglia'],['micro-grid','Micro griglia'],
-    ['diagonal','Linee diagonali'],['crosshatch','Reticolo'],['vertical','Righe verticali'],
-    ['horizontal','Righe orizzontali'],['chevrons','Chevron'],['triangles','Triangoli'],
-    ['diamonds','Rombi'],['circles','Anelli'],['waves','Onde'],['bricks','Mattoni'],
-    ['confetti','Coriandoli'],['stars','Stelle'],['plus','Croci'],['dashes','Trattini'],
-    ['pixels','Pixel'],['zigzag','Zig zag'],['mesh','Maglia'],['rays','Raggi'],
-    ['dot-diamonds','Rombi a retino'],['halftone-fade','Retino sfumato'],['halftone-noise','Retino a macchie'],
-    ['halftone-wave','Retino a onde'],['concentric','Cerchi concentrici'],['dot-rings','Cerchi di pois'],
-    ['targets','Bersagli'],['rosettes','Rosoni'],['arches','Archi'],['spiral','Spirale'],
-    ['network','Costellazione'],['circuit','Circuito']
+    'halftone','none','fine-dots','big-dots','grid','micro-grid','diagonal','crosshatch','vertical',
+    'horizontal','chevrons','triangles','diamonds','circles','waves','bricks','confetti','stars','plus','dashes',
+    'pixels','zigzag','mesh','rays','dot-diamonds','halftone-fade','halftone-noise','halftone-wave','concentric','dot-rings',
+    'targets','rosettes','arches','spiral','network','circuit'
   ];
-  const PATTERN_IDS = new Set(PATTERNS.map(a => a[0]));
+  const patternName = id => t('pat.'+id);
+  const PATTERN_IDS = new Set(PATTERNS);
   // "Mi sento fortunato": abbinamenti di colori collaudati (squadre, scuderie, classici del design),
   // usati come preset nascosti. Formato: [nome, colore aree scure, colore del brand].
   // Ogni coppia rispetta LUCKY_CONTRAST: titolo bianco leggibile sul colore scuro e barra CTA leggibile.
@@ -148,7 +144,7 @@
   const blank = () => ({
     brandColor:'#6047e8', darkColor:'#181818', pattern:'halftone',
     titleFont:'Montserrat', ctaFont:'Montserrat', titleWeight:800, ctaWeight:800, titleSize:58, titleY:0, titleUppercase:false,
-    ctaText:"LEGGI L'ARTICOLO SU", stickerText:'WORDPRESS.ORG',
+    ctaText:t('story.ctaDefault'), stickerText:'WORDPRESS.ORG',
     watermarkEnabled:false, watermarkOpacity:35, watermarkSize:180,
     watermarkPosition:'top-right', backgroundEnabled:false, backgroundTint:55, backgroundPosition:'center'
   });
@@ -168,7 +164,7 @@
   const siteKey = () => normalizeSite(siteUrl.value);
   const hostnameLabel = () => {
     try { return new URL(siteKey()).hostname.replace(/^www\./,'').toUpperCase(); }
-    catch { return 'SITO WEB'; }
+    catch { return t('story.siteFallback'); }
   };
   const safeStyle = value => {
     const initial=blank(), v=value||{}, result={...initial};
@@ -202,8 +198,8 @@
     }
   } catch (e) {}
   const persistStore = () => {
-    try { localStorage.setItem(STORE_KEY,JSON.stringify(store)); $('saveStatus').textContent='Salvato ✓'; return true; }
-    catch (e) { $('saveStatus').textContent='Memoria piena'; return false; }
+    try { localStorage.setItem(STORE_KEY,JSON.stringify(store)); $('saveStatus').textContent=t('style.saved'); return true; }
+    catch (e) { $('saveStatus').textContent=t('style.storageFull'); return false; }
   };
   const getProfile = () => {
     const id=siteKey();
@@ -273,10 +269,14 @@
     FONTS.forEach(font => { const op=document.createElement('option');op.value=font;op.textContent=font;el.appendChild(op); });
   };
   buildFontSelect(cfgTitleFont); buildFontSelect(cfgCtaFont);
-  PATTERNS.forEach(([id,name]) => {
-    const option=document.createElement('option');option.value=id;option.textContent=name;cfgPattern.appendChild(option);
-  });
-  $('patternCount').textContent=PATTERNS.length+' stili';
+  // Elenchi dei motivi (pannello e guida): si rifanno a ogni cambio di lingua.
+  function fillPatternSelect(select) {
+    const value=select.value;select.textContent='';
+    PATTERNS.forEach(id => { select.add(new Option(patternName(id),id)); });
+    if(value)select.value=value;
+  }
+  fillPatternSelect(cfgPattern);
+  $('patternCount').textContent=t('style.patternCount',{n:PATTERNS.length});
 
   function drawPattern(context,variant,x,y,w,h,isBrand=false) {
     if (variant==='none') return;
@@ -386,7 +386,8 @@
 
   function buildPatternGrid() {
     const grid=$('patternGrid');grid.textContent='';
-    PATTERNS.forEach(([id,label]) => {
+    PATTERNS.forEach(id => {
+      const label=patternName(id);
       const b=document.createElement('button');b.type='button';b.className='pattern-choice';b.dataset.pattern=id;b.title=label;
       const preview=document.createElement('canvas'); preview.width=100;preview.height=50;
       const text=document.createElement('span');text.textContent=label;
@@ -458,7 +459,7 @@
     } else {
       ctx.fillStyle='#282b31';ctx.fillRect(0,PHOTO_Y,W,PHOTO_H);
       ctx.fillStyle='#9da5b0';ctx.font=cssFont('Montserrat',32);
-      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('Seleziona una notizia',W/2,PHOTO_Y+PHOTO_H/2);
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t('canvas.selectNews'),W/2,PHOTO_Y+PHOTO_H/2);
     }
     ctx.restore();
     ctx.fillStyle=c.darkColor;ctx.fillRect(0,CTA_Y,W,CTA_H);
@@ -468,13 +469,13 @@
     drawPattern(ctx,c.pattern,0,RED_Y,W,H-RED_Y,true);
 
     ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=c.brandColor;
-    const cta=c.ctaText || "LEGGI L'ARTICOLO SU";
+    const cta=c.ctaText || t('story.ctaDefault');
     let ctaSize=60;
     ctx.font=cssFont(c.ctaFont,ctaSize,c.ctaWeight);
     while(ctaSize>29 && ctx.measureText(cta).width>975)ctx.font=cssFont(c.ctaFont,--ctaSize,c.ctaWeight);
     ctx.fillText(cta,W/2,CTA_Y+CTA_H/2+6,980);
 
-    const typed=(inpTitle.value||'Titolo della notizia').trim();
+    const typed=(inpTitle.value||t('canvas.titlePlaceholder')).trim();
     // Il tutto maiuscolo cambia solo la grafica: il titolo salvato resta com'è.
     const title=c.titleUppercase?typed.toLocaleUpperCase('it-IT'):typed;
     let size=c.titleSize, lines, height;
@@ -501,7 +502,7 @@
       ctx.save();ctx.strokeStyle=guide;ctx.lineWidth=3;ctx.setLineDash([10,8]);
       ctx.strokeRect(W/2-290,targetY-48,580,96);ctx.setLineDash([]);
       ctx.fillStyle=guide;ctx.font=cssFont('Montserrat',25);ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText('🔗 '+(c.stickerText||hostnameLabel())+' (Area Sticker 88%)',W/2,targetY,540);
+      ctx.fillText('🔗 '+(c.stickerText||hostnameLabel())+' '+t('canvas.stickerArea'),W/2,targetY,540);
       ctx.restore();
     }
   }
@@ -534,7 +535,7 @@
     const ctaFont=Math.random()<.5?titleFont:pick(condensed?WIDE_FONTS:CONDENSED_FONTS);
     return {
       ...luckyColors(),
-      pattern:pick(PATTERNS.map(p=>p[0]).filter(id=>id!==currentStyle.pattern)),
+      pattern:pick(PATTERNS.filter(id=>id!==currentStyle.pattern)),
       titleFont, ctaFont, titleWeight:heavyWeight(titleFont), ctaWeight:heavyWeight(ctaFont),
       // I font stretti reggono un corpo più grande a parità di righe.
       titleSize:condensed?68+Math.floor(Math.random()*13):56+Math.floor(Math.random()*11),
@@ -605,7 +606,7 @@
     backgroundImg=null;
     $('backgroundPreview').hidden=!data;
     $('backgroundPreview').src=data||'';
-    $('backgroundInfo').textContent=data?'Sfondo caricato':'Nessuna immagine caricata';
+    $('backgroundInfo').textContent=t(data?'bg.loaded':'bg.none');
     if(!data){backgroundPromise=Promise.resolve();renderStory();return;}
     backgroundPromise=new Promise(resolve=>{
       const img=new Image();
@@ -627,7 +628,7 @@
       const p=getProfile(),old=p.backgroundData;p.backgroundData=data;
       if(!persistStore()){p.backgroundData=old;return;}
       currentStyle.backgroundEnabled=true;saveCurrentStory();syncUI();loadBackground();
-    }catch(err){alert('Errore sfondo: '+err.message);}
+    }catch(err){alert(t('bg.error',{msg:err.message}));}
     finally{event.target.value='';}
   });
   $('btnRemoveBackground').onclick=()=>{
@@ -640,7 +641,7 @@
     logoImg=null;
     $('logoPreview').hidden=!data;
     $('logoPreview').src=data||'';
-    $('logoInfo').textContent=data?'Logo caricato':'Nessun logo caricato';
+    $('logoInfo').textContent=t(data?'logo.loaded':'logo.none');
     if(!data) { logoPromise=Promise.resolve();renderStory();return; }
     logoPromise=new Promise(resolve=>{
       const img=new Image();
@@ -662,7 +663,7 @@
       const p=getProfile(),prev=p.logoData;p.logoData=data;
       if(!persistStore()) {p.logoData=prev;return;}
       currentStyle.watermarkEnabled=true;saveCurrentStory();syncUI();loadLogo();
-    } catch(err){alert('Errore logo: '+err.message);}
+    } catch(err){alert(t('logo.error',{msg:err.message}));}
     finally{e.target.value='';}
   });
   $('btnRemoveLogo').onclick=()=>{getProfile().logoData=null;persistStore();loadLogo();};
@@ -681,7 +682,7 @@
   };
   function saveDefaults() {
     const p=getProfile();p.defaults=safeStyle(currentStyle);p.metaTarget=cfgMetaTarget.value.trim();
-    if(persistStore())alert('Stile predefinito salvato per '+hostnameLabel());
+    if(persistStore())alert(t('set.defaultsSaved',{site:hostnameLabel()}));
   }
   $('btnSaveDefaults').onclick=saveDefaults;$('btnSaveDefaultsVisible').onclick=saveDefaults;
   $('btnResetStory').onclick=restoreCurrent;$('btnResetStoryVisible').onclick=restoreCurrent;
@@ -693,7 +694,8 @@
     panel.hidden=!open;
     $('btnToggleEditor').setAttribute('aria-expanded',String(open));
     $('btnToggleEditor').classList.toggle('expanded',open);
-    $('editorToggleLabel').textContent=open?'Chiudi':'Apri';
+    $('editorToggleLabel').textContent=t(open?'ed.close':'ed.open');
+    $('editorToggleLabel').dataset.i18n=open?'ed.close':'ed.open';
   };
 
   $('cfgMetaTarget').addEventListener('input',()=>{getProfile().metaTarget=cfgMetaTarget.value.trim();persistStore();});
@@ -786,14 +788,13 @@
 
   async function fetchNews() {
     const site=siteUrl.value.trim(),listEl=$('newsList');
-    if(!/^https?:\/\//i.test(site))return alert('Inserisci un indirizzo valido con https://');
-    listEl.textContent='Caricamento articoli in corso…';
+    if(!/^https?:\/\//i.test(site))return alert(t('news.invalidUrl'));
+    listEl.textContent=t('news.loading');
     try {
       const r=await fetch(`proxy.php?action=feed&site=${encodeURIComponent(site)}&n=20`);
       const data=await r.json();
-      if(!r.ok || !Array.isArray(data.items))throw Error(data.error||'Risposta feed non valida');
-      listEl.textContent='';$('newsCount').textContent=data.items.length+' articoli';$('statNews').textContent=data.items.length;
-      const sourceHint=$('feedSource');if(sourceHint)sourceHint.textContent='Fonte: '+(data.source==='rss'?'Feed RSS / Atom':'WordPress REST API');
+      if(!r.ok || !Array.isArray(data.items))throw Error(data.error||'HTTP '+r.status);
+      listEl.textContent='';newsCount=data.items.length;newsSource=data.source==='rss'?'rss':'wp';showNewsInfo();$('statNews').textContent=data.items.length;
       data.items.forEach((it,idx)=>{
         const card=document.createElement('div');card.className='news-card';card.dataset.articleId=String(it.id);
         const image=document.createElement('img');image.alt='';
@@ -802,7 +803,7 @@
         h.textContent=it.title;sub.textContent='#'+it.id;sub.className='news-meta';column.append(h,sub);
         // Aggiunta rapida: stessa grafica predefinita (o già personalizzata) senza aprire l'editor.
         const quick=document.createElement('button');quick.type='button';quick.className='quick-queue';
-        quick.title='Aggiungi subito alla coda di pubblicazione';
+        quick.title=t('news.quickTitle');
         quick.onclick=event=>{event.stopPropagation();quickAdd(it,card,quick);};
         card.append(image,column,quick);
         card.onclick=()=>selectArticle(it,card,true);listEl.appendChild(card);
@@ -810,14 +811,18 @@
       });
       refreshQuickButtons();
       return data.items.length;
-    } catch(err){listEl.textContent='Errore lettura feed: '+err.message;return 0;}
+    } catch(err){
+      // I messaggi del server sono in italiano: in un'altra lingua resta solo la spiegazione tradotta.
+      listEl.textContent=t('news.error')+(I18N.lang()==='it'&&err.message?` (${err.message})`:'');
+      return 0;
+    }
   }
   $('btnFetch').onclick=fetchNews;
   siteUrl.addEventListener('change',()=>{
     if(siteKey()===normalizeSite(store.lastSite))return;
     store.lastSite=siteUrl.value.trim();persistStore();
     currentArticle=null;articleToken++;loadedImg=null;photoPromise=Promise.resolve();
-    $('newsList').textContent='Premi “Carica notizie” per il nuovo sito.';
+    $('newsList').textContent=t('news.newSite');
     currentStyle=safeStyle(getProfile().defaults);inpTitle.value='';resetPhoto();syncUI();loadLogo();loadBackground();renderTitleChoices();
   });
 
@@ -861,7 +866,7 @@
   }
 
   // Tre titoli in scala di curiosità: leggero → medio → forte, ognuno con una tecnica diversa.
-  const AI_LEVELS=[['leggero','● Leggero'],['medio','●● Medio'],['forte','●●● Forte']];
+  const AI_LEVELS=[['leggero','ai.light'],['medio','ai.medium'],['forte','ai.strong']];
   // La curiosità nasce togliendo informazioni presenti nel titolo originale, mai aggiungendone di nuove.
   const titlePrompt=original=>[
     'Sei il social media editor di una testata giornalistica online. Scrivi 3 titoli alternativi per una storia Instagram/Facebook che rimanda all\'articolo con un adesivo link.',
@@ -880,7 +885,7 @@
     '- Non cambiare il significato: ciò che è certo resta certo (se "salta" lo show, non scrivere "è a rischio") e i termini del settore restano quelli (un wrestler non diventa un "giocatore").',
     '- Vietati aggettivi e giudizi che il titolo originale non contiene, come "a sorpresa", "inattesa", "clamorosa", "storica", "straordinaria", "dell\'ultimo minuto", "che sorprende tutti".',
     '- Non promettere contenuti che il titolo originale non garantisce: niente "ecco perché", "il motivo", "i dettagli", "spiega", "svela" se l\'originale non li annuncia.',
-    '- Vietate le formule acchiappaclic logore: "non crederai", "incredibile", "shock", "pazzesco", "ecco cosa è successo", "lascia tutti senza parole".',
+    '- Vietate le formule acchiappaclic logore: "non crederai", "incredibile", "shock", "pazzesco", "ecco cosa è successo", "lascia tutti senza parole", e i loro equivalenti nella lingua del titolo originale.',
     '- Stessa lingua del titolo originale, con espressioni naturali e idiomatiche, mai calchi dall\'inglese.',
     '- Brevi e incisivi: idealmente 50-90 caratteri, mai oltre 110. Niente hashtag, emoji, virgolette all\'inizio o alla fine, né maiuscolo per enfasi.',
     '',
@@ -901,7 +906,7 @@
       const r=await fetch(url,{...options,signal:ctrl.signal});
       return {status:r.status,ok:r.ok,json:await r.json().catch(()=>({}))};
     } catch(e) {
-      return {status:0,ok:false,json:{error:{message:e.name==='AbortError'?'nessuna risposta entro il tempo massimo':e.message}}};
+      return {status:0,ok:false,json:{error:{message:e.name==='AbortError'?t('ai.eTimeout'):e.message}}};
     } finally { clearTimeout(timer); }
   }
 
@@ -928,13 +933,14 @@
       .filter(t=>t && t.toLowerCase()!==original.trim().toLowerCase()).map(t=>t.slice(0,140)).slice(0,3);
   }
 
-  const describeAiError=(status,message)=>({
-    0:'nessuna risposta',429:'limite d’uso raggiunto',404:'non disponibile',500:'errore del servizio',503:'sovraccarico',504:'nessuna risposta'
-  })[status]||(`errore HTTP ${status}`+(message?`: ${message}`:''));
+  const describeAiError=(status,message)=>{
+    const key={0:'ai.eNoReply',429:'ai.eQuota',404:'ai.eMissing',500:'ai.eService',503:'ai.eBusy',504:'ai.eNoReply'}[status];
+    return key?t(key):t('ai.eHttp',{status})+(message?`: ${message}`:'');
+  };
 
   async function requestAiTitles(original) {
     const key=aiSettings.key;
-    if(!key) throw Error('Chiave API Gemini mancante');
+    if(!key) throw Error(t('ai.noKey'));
     const started=Date.now(), tried=new Set(), errors=[];
     const queue=[...new Set([aiSettings.model,...AI_MODELS].filter(Boolean))];
     let listedAdded=false;
@@ -963,16 +969,16 @@
       if(r.status===400 && !/api.?key/i.test(String(r.json.error?.message||'')))r=await call(false);
       const message=String(r.json.error?.message||'');
       if(r.status===401 || r.status===403 || (r.status===400 && /api.?key/i.test(message)))
-        throw Error('La chiave API non è valida o non ha i permessi: controllala in “Impostazioni sito”.');
+        throw Error(t('ai.badKey'));
       if(r.ok) {
         const titles=parseTitles(r.json,original);
         if(titles.length)return titles;
-        errors.push({model,status:200,text:'risposta senza titoli'});
+        errors.push({model,status:200,text:t('ai.eNoTitles')});
       } else errors.push({model,status:r.status,text:describeAiError(r.status,message)});
     }
     if(errors.length && errors.every(e=>e.status===429))
-      throw Error('Hai raggiunto il limite d’uso gratuito di Gemini su tutti i modelli disponibili. Riprova più tardi: il limite si azzera da solo.');
-    throw Error('Gemini non ha risposto. '+(errors.map(e=>`${e.model}: ${e.text}`).join(' · ')||'Nessun modello disponibile per questa chiave.'));
+      throw Error(t('ai.quota'));
+    throw Error(t('ai.noReply',{details:errors.map(e=>`${e.model}: ${e.text}`).join(' · ')||t('ai.noModel')}));
   }
 
   function scheduleAiTitles() {
@@ -1022,24 +1028,24 @@
     const key=articleKey(currentArticle), cached=aiCache[key]?.t, st=aiState.get(key), current=inpTitle.value.trim();
 
     const head=el('div','title-choices-head');
-    head.append(el('span','',aiSettings.key?'✨ Titoli alternativi':'✨ Titoli alternativi con AI'));
+    head.append(el('span','',t(aiSettings.key?'ai.title':'ai.titleLocked')));
     if(aiSettings.key && st?.status!=='loading' && (cached||st?.status==='error')) {
-      const again=el('button','title-regen',cached?'↻ Altri 3':'↻ Riprova');again.type='button';
+      const again=el('button','title-regen',t(cached?'ai.more':'ai.retry'));again.type='button';
       again.onclick=()=>generateTitlesFor(currentArticle,true);
       head.append(again);
     }
-    box.append(head,choiceButton('Dal sito',currentArticle.title,current));
+    box.append(head,choiceButton(t('ai.fromSite'),currentArticle.title,current));
 
     if(!aiSettings.key) {
       const locked=el('div','title-locked');
-      ['Un titolo che incuriosisce e fa toccare il link','La stessa notizia raccontata con più impatto','Una domanda che invoglia a leggere l’articolo']
-        .forEach((t,i)=>{ const row=el('div','title-choice title-fake');row.append(el('span','title-choice-tag',AI_LEVELS[i][1]),el('span','',t));locked.append(row); });
+      ['ai.fake1','ai.fake2','ai.fake3']
+        .forEach((key,i)=>{ const row=el('div','title-choice title-fake');row.append(el('span','title-choice-tag',t(AI_LEVELS[i][1])),el('span','',t(key)));locked.append(row); });
       const overlay=el('div','title-lock-overlay'), card=el('div','title-lock-card');
-      card.append(el('strong','','🔒 Aggiungi le API Google gratis in 30 secondi per sbloccare questa sezione'));
+      card.append(el('strong','',t('ai.lockTitle')));
       const steps=el('div','title-lock-steps');
-      const link=el('a','title-lock-link','1. Crea la chiave gratis ↗');link.href=AI_KEY_URL;link.target='_blank';link.rel='noopener';
-      const input=el('input');input.type='password';input.placeholder='2. Incolla qui la chiave';input.autocomplete='off';
-      const unlock=el('button','primary','Sblocca');unlock.type='button';
+      const link=el('a','title-lock-link',t('ai.createKey'));link.href=AI_KEY_URL;link.target='_blank';link.rel='noopener';
+      const input=el('input');input.type='password';input.placeholder=t('ai.pasteKey');input.autocomplete='off';
+      const unlock=el('button','primary',t('ai.unlock'));unlock.type='button';
       unlock.onclick=()=>{
         if(!input.value.trim()){input.focus();return;}
         cfgGeminiKey.value=input.value.trim();saveAiSettings();
@@ -1051,9 +1057,9 @@
       box.append(locked);
       return;
     }
-    if(cached) { cached.forEach((t,i)=>box.append(choiceButton(AI_LEVELS[i]?.[1]||'AI '+(i+1),t,current))); return; }
+    if(cached) { cached.forEach((title,i)=>box.append(choiceButton(AI_LEVELS[i]?t(AI_LEVELS[i][1]):'AI '+(i+1),title,current))); return; }
     if(st?.status==='error') { box.append(el('div','title-error',st.error)); return; }
-    for(let i=0;i<3;i++){ const row=el('div','title-choice title-skeleton');row.append(el('span','title-choice-tag',AI_LEVELS[i][1]),el('span','',i===0?'Genero titoli alternativi…':''));box.append(row); }
+    for(let i=0;i<3;i++){ const row=el('div','title-choice title-skeleton');row.append(el('span','title-choice-tag',t(AI_LEVELS[i][1])),el('span','',i===0?t('ai.generating'):''));box.append(row); }
   }
 
   async function exportStoryDataUrl() {
@@ -1068,7 +1074,7 @@
     try {
       const data=await exportStoryDataUrl(),a=document.createElement('a');
       a.href=data;a.download=`story-${currentArticle?.id||Date.now()}.jpg`;a.click();
-    } catch(e) {alert('Impossibile esportare: '+e.message);}
+    } catch(e) {alert(t('export.error',{msg:e.message}));}
   };
 
   function updateQueueUI() {
@@ -1077,10 +1083,10 @@
     const mobBadge=$('mobQueueBadge'); if(mobBadge) mobBadge.textContent=queue.length;
     refreshQuickButtons();
     const el=$('queueList');el.textContent='';
-    if(!queue.length){const p=document.createElement('p');p.className='small-note';p.textContent='Modifica una o più storie e clicca su “Aggiungi in Coda”.';el.appendChild(p);return;}
+    if(!queue.length){const p=document.createElement('p');p.className='small-note';p.textContent=t('queue.empty');el.appendChild(p);return;}
     queue.forEach((item,idx)=>{
       const row=document.createElement('div');row.className='queue-item';
-      const img=document.createElement('img');img.src=item.dataUrl;img.alt='Anteprima';
+      const img=document.createElement('img');img.src=item.dataUrl;img.alt=t('queue.previewAlt');
       const label=document.createElement('div');label.className='q-title';label.textContent=item.title;
       const remove=document.createElement('button');remove.type='button';remove.textContent='✕';
       remove.onclick=()=>{queue.splice(idx,1);updateQueueUI();};row.append(img,label,remove);el.appendChild(row);
@@ -1092,7 +1098,7 @@
       const b=card.querySelector('.quick-queue');if(!b||b.dataset.busy)return;
       const queued=isQueued(card.dataset.articleId);
       card.classList.toggle('queued',queued);
-      b.textContent=queued?'✓ In coda':'＋ Coda';
+      b.textContent=t(queued?'quick.queued':'quick.add');
       b.disabled=queued;
     });
   }
@@ -1101,7 +1107,7 @@
     const article=currentArticle;
     const jpg=await exportStoryDataUrl();
     const item={id:article.id,title:inpTitle.value.trim()||article.title,url:article.url,dataUrl:jpg,
-      stickerText:currentStyle.stickerText.trim()||hostnameLabel(),metaTarget:cfgMetaTarget.value.trim()};
+      stickerText:currentStyle.stickerText.trim()||hostnameLabel(),metaTarget:cfgMetaTarget.value.trim(),uiLang:I18N.lang()};
     const existing=queue.findIndex(q=>String(q.id)===String(article.id));
     if(existing>=0)queue[existing]=item;else queue.push(item);
     updateQueueUI();
@@ -1116,19 +1122,19 @@
       try {
         selectArticle(article,card,false,{withAiTitles:false});
         await addCurrentToQueue();
-      } catch(e){alert('Errore preparazione storia: '+e.message);}
+      } catch(e){alert(t('queue.prepError',{msg:e.message}));}
       finally{delete button.dataset.busy;refreshQuickButtons();}
     });
   }
   $('btnAddQueue').onclick=async()=>{
-    if(!currentArticle)return alert('Seleziona prima una notizia!');
-    const b=$('btnAddQueue');b.disabled=true;b.textContent='⏳ Elaborazione...';
+    if(!currentArticle)return alert(t('queue.selectFirst'));
+    const b=$('btnAddQueue');b.disabled=true;b.textContent=t('queue.processing');
     let replaced=false;
     try { replaced=await addCurrentToQueue(); }
-    catch(e){alert('Errore preparazione storia: '+e.message);}
+    catch(e){alert(t('queue.prepError',{msg:e.message}));}
     finally{
-      b.disabled=false;b.textContent=replaced?'✓ Storia in coda aggiornata':'➕ Aggiungi Storia in Coda';
-      if(replaced)setTimeout(()=>{b.textContent='➕ Aggiungi Storia in Coda';},2000);
+      b.disabled=false;b.textContent=t(replaced?'queue.updated':'queue.add');
+      if(replaced)setTimeout(()=>{b.textContent=t('queue.add');},2000);
     }
   };
   $('btnClearQueue').onclick=()=>{queue=[];updateQueueUI();};
@@ -1137,7 +1143,8 @@
   const progressModal=$('publishModal');
   const STAGES=['start','image','link','sticker','verify','publish'];
   const STEP_PCT={start:8,image:25,link:48,sticker:62,verify:78,publish:92,done:100,error:92,stopped:100};
-  const STEP_TEXT={start:'Preparazione della storia',image:'Elaborazione della grafica',link:'Preparazione dei collegamenti',sticker:'Creazione adesivo cliccabile',verify:'Controllo dei collegamenti',publish:'Finalizzazione',done:'Operazione conclusa',error:'Operazione non completata'};
+  const STEP_KEYS=['start','image','link','sticker','verify','publish','done','error'];
+  const stepText=stage=>STEP_KEYS.includes(stage)?t('step.'+stage):'';
   const STEP_GROUP={start:'start',image:'image',link:'link',sticker:'link',verify:'link',publish:'publish'};
   const GROUPS=['start','image','link','publish'];
 
@@ -1151,9 +1158,9 @@
     $('extensionGate').hidden=extensionConnected;
     const status=$('extStatus');
     status.classList.toggle('online',extensionConnected);
-    const appLabel=nativePlatform()==='desktop'?'App desktop · Pronta':'App Android · Pronta';
-    status.textContent=isNativeApp()?appLabel:(extensionConnected?'Motore collegato':(label||'Motore da collegare'));
-    if(!workflowActive)$('statStatus').textContent=extensionConnected?'Pronto':'In attesa';
+    const appLabel=t(nativePlatform()==='desktop'?'ext.desktopReady':'ext.androidReady');
+    status.textContent=isNativeApp()?appLabel:(extensionConnected?t('ext.connected'):(label||t('ext.toConnect')));
+    $('statStatus').textContent=t(workflowActive?'status.publishing':extensionConnected?'status.ready':'status.waiting');
     if(isNativeApp()){
       $('btnMetaLogin').hidden=false;
       $('btnRevealWork').hidden=false;
@@ -1161,11 +1168,12 @@
       showEngineVersion();
     }
   }
+  let engineVersion='';
   function showEngineVersion() {
     try {
       if(typeof window.StoryFlowNative.getEngineInfo!=='function')return;
       const info=JSON.parse(window.StoryFlowNative.getEngineInfo()||'{}');
-      if(info.version)$('versionTag').textContent=`VERSIONE 4.1 · MOTORE ${info.version}`;
+      if(info.version){engineVersion=info.version;$('versionTag').textContent=t('nav.versionEngine',{engine:info.version});}
     } catch(_) {}
   }
 
@@ -1200,11 +1208,11 @@
     $('progressFill').style.width=pct+'%';
     $('progressFill').classList.toggle('completed',stage==='done');
     $('progressFill').classList.toggle('failed',stage==='error');
-    $('progressPct').textContent=stage==='error'?'Da verificare':stage==='stopped'?'In pausa':pct+'%';
-    $('progressCount').textContent=`Storia ${Math.min(count,total)} di ${total}`;
-    $('publishTitle').textContent=stage==='error'?'Problema rilevato':stage==='done'?(info.dryRun?'Test completato':'Storie pubblicate!'):stage==='stopped'?'Coda in pausa':'Pubblicazione in corso';
-    $('publishSub').textContent=terminal?'Riepilogo della pubblicazione.':'Elaborazione automatica in corso.';
-    $('progressLast').textContent=info.message || ((STEP_TEXT[stage]||STEP_TEXT.done)+'…');
+    $('progressPct').textContent=stage==='error'?t('pm.toCheck'):stage==='stopped'?t('pm.paused'):pct+'%';
+    $('progressCount').textContent=t('ps.count',{i:Math.min(count,total),n:total});
+    $('publishTitle').textContent=t(stage==='error'?'pm.titleError':stage==='done'?(info.dryRun?'pm.titleTestDone':'pm.titleDone'):stage==='stopped'?'pm.titlePaused':'pm.titleRunning');
+    $('publishSub').textContent=t(terminal?'pm.summary':'pm.sub');
+    $('progressLast').textContent=localMessage(info) || ((stepText(stage)||stepText('done'))+'…');
     if(!terminal)renderStage(info,pct,visualStage);
 
     const activeGroup=STEP_GROUP[visualStage]||'start';
@@ -1217,22 +1225,22 @@
     });
 
     if(stage==='error'){
-      const explanation=String(info.errorReason||info.message||'Errore durante la lavorazione.');
+      const explanation=String(info.errorReason||info.message||t('pm.errorGeneric'));
       $('publishDiagnosis').hidden=false;
-      $('publishFailureStage').textContent='Fase: '+(STEP_TEXT[failedStage]||failedStage);
+      $('publishFailureStage').textContent=t('pm.phase',{stage:stepText(failedStage)||failedStage});
       $('publishFailureMessage').textContent=explanation;
       $('publishTechnicalLog').textContent=Array.isArray(info.log)&&info.log.length?info.log.join('\n'):'';
       reportCache=`StoryFlow — Errore\nFase: ${failedStage}\nMotivo: ${explanation}\n`+(info.log||[]).join('\n');
       // Il motore non ha trovato il nome della pagina in Meta: lo spieghiamo in parole semplici.
       const missing=/Canale "([\s\S]*?)" non trovato/.exec(explanation);
       if(missing){
-        showOutcomeBanner(false, 'Pagina non trovata in Meta', `Non troviamo «${missing[1]}» nella pagina delle storie di Meta Business Suite. Il nome deve essere scritto esattamente come lo mostra Meta e la pagina deve essere collegata al tuo account Meta Business Suite.`);
+        showOutcomeBanner(false, t('pm.pageNotFound'), t('pm.pageNotFoundDesc',{name:missing[1]}));
         $('btnFixChannel').hidden=false;
-      } else showOutcomeBanner(false, 'Esito negativo', explanation);
+      } else showOutcomeBanner(false, t('pm.outcomeFail'), localMessage(info) || t('pm.failedAt',{stage:stepText(failedStage)||failedStage}));
     }
     if(stage==='done'){
       $('publishDiagnosis').hidden=true;
-      showOutcomeBanner(true, info.dryRun ? 'Test riuscito!' : 'Esito positivo!', info.message || 'Operazione completata.');
+      showOutcomeBanner(true, t(info.dryRun ? 'pm.testOk' : 'pm.outcomeOk'), localMessage(info) || t('pm.completed'));
       if (!info.dryRun) { queue = []; updateQueueUI(); }
     }
     if(stage==='stopped'){
@@ -1241,7 +1249,7 @@
       queue=queue.filter(q=>left.has(String(q.id)));
       updateQueueUI();
       $('publishDiagnosis').hidden=true;
-      showOutcomeBanner(true,'Coda in pausa',stoppedSummary(Number(info.ok)||0,Number(info.err)||0,queue.length));
+      showOutcomeBanner(true,t('pm.titlePaused'),stoppedSummary(Number(info.ok)||0,Number(info.err)||0,queue.length));
     }
     if(terminal){
       workflowActive=false; activeRequestId=null;
@@ -1271,20 +1279,21 @@
   window.__onStoryFlowNativeProgress = handleProgress;
 
   function stoppedSummary(ok,err,left){
-    const done=ok===0?'Nessuna storia pubblicata':ok===1?'Pubblicata 1 storia':`Pubblicate ${ok} storie`;
-    const failed=err===0?'':err===1?', 1 non riuscita':`, ${err} non riuscite`;
-    const rest=left===0?'Non restano storie in coda.':left===1?'L’altra storia resta in coda, pronta a ripartire.':`Le altre ${left} restano in coda, pronte a ripartire.`;
-    return `${done}${failed}. ${rest}`;
+    return `${tn('stop.published',ok)}${err?tn('stop.failed',err):''}. ${tn('stop.left',left)}`;
   }
+  // I messaggi di motore e app sono nella lingua indicata da msgLang (italiano se manca):
+  // se non è quella del pannello si usano i testi tradotti della fase.
+  const localMessage=info=>(info.msgLang||'it')===I18N.lang()?String(info.message||''):'';
 
   // --- SCHERMATA DI PUBBLICAZIONE ---
   // Copre tutto il pannello finché la coda è in corso e non ha un pulsante per chiuderla: mostra la storia
   // in lavorazione con una scansione animata. Le app tengono lo schermo acceso da sole; nel browser si usa
   // la Wake Lock API, se disponibile. "Ferma la coda dopo questa storia" c'è solo nelle app che lo gestiscono.
   const publishStage=$('publishStage');
-  const STAGE_TEXT={start:'Preparazione della storia',image:'Caricamento della grafica',link:'Aggiunta del link all’articolo',sticker:'Aggiunta del link all’articolo',verify:'Ultimi controlli',publish:'Pubblicazione della storia'};
+  const STAGE_KEYS={start:'stage.start',image:'stage.image',link:'stage.link',sticker:'stage.link',verify:'stage.verify',publish:'stage.publish'};
+  const stageText=stage=>t(STAGE_KEYS[stage]||STAGE_KEYS.start);
   const STAGE_STALL_MS=6*60*1000;
-  let runItems=[], stageItemId=null, stageDryRun=false, stopArmed=false, stageWatch=null, stageProgressAt=0, nativeIdleChecks=0, wakeLock=null;
+  let stageStatus='start', stageStalled=false, runItems=[], stageItemId=null, stageDryRun=false, stopArmed=false, stageWatch=null, stageProgressAt=0, nativeIdleChecks=0, wakeLock=null;
   const canStopAfterCurrent=()=>isNativeApp()&&typeof window.StoryFlowNative.setStopAfterCurrent==='function';
 
   async function keepScreenOn(on){
@@ -1311,8 +1320,9 @@
     });
     $('psStrip').hidden=runItems.length<2;
     $('psFill').style.width='4%';
-    $('psStatus').textContent=STAGE_TEXT.start+'…';
-    $('psNote').textContent=isNativeApp()?'Tieni aperta l’app: lo schermo resterà acceso fino alla fine.':'Tieni aperta questa pagina fino alla fine della pubblicazione.';
+    stageStatus='start';
+    $('psStatus').textContent=stageText('start')+'…';
+    $('psNote').textContent=t(isNativeApp()?'ps.noteApp':'ps.notePage');
     $('btnStageClose').hidden=true;
     showStageItem(runItems[0]||null,1,Math.max(1,runItems.length));
     publishStage.hidden=false;
@@ -1338,8 +1348,8 @@
       const card=$('psCard');
       card.classList.remove('ps-swap'); void card.offsetWidth; card.classList.add('ps-swap');
     }
-    $('psTitle').textContent=item?.title||'Storia in preparazione';
-    $('psCount').textContent=stageDryRun?'Test · storia di prova':`Storia ${position} di ${total}`;
+    $('psTitle').textContent=item?.title||t('ps.itemPreparing');
+    $('psCount').textContent=stageDryRun?t('ps.testCount'):t('ps.count',{i:position,n:total});
     [...$('psStrip').children].forEach((thumb,i)=>{
       thumb.className=i<position-1?'done':i===position-1?'current':(stopArmed?'skipped':'');
     });
@@ -1347,11 +1357,9 @@
     const left=total-position;
     $('btnStopAfter').hidden=!canStopAfterCurrent()||stageDryRun||left<1;
     $('btnStopAfter').classList.toggle('armed',stopArmed);
-    $('btnStopAfter').textContent=stopArmed?'Continua con tutta la coda':'Ferma la coda dopo questa storia';
-    if(stopArmed)$('psNote').textContent=left===1
-      ?'Ci fermiamo dopo questa storia: l’ultima resta in coda, pronta a ripartire.'
-      :`Ci fermiamo dopo questa storia: le altre ${left} restano in coda, pronte a ripartire.`;
-    else $('psNote').textContent=isNativeApp()?'Tieni aperta l’app: lo schermo resterà acceso fino alla fine.':'Tieni aperta questa pagina fino alla fine della pubblicazione.';
+    $('btnStopAfter').textContent=t(stopArmed?'ps.continueAll':'ps.stopAfter');
+    if(stopArmed)$('psNote').textContent=tn('ps.stopNote',left);
+    else $('psNote').textContent=t(isNativeApp()?'ps.noteApp':'ps.notePage');
   }
 
   function renderStage(info,pct,visualStage){
@@ -1362,7 +1370,8 @@
     if(idx<0)idx=Math.min(Math.max(1,Number(info.index)||1),total)-1;
     showStageItem(runItems[idx]||null,idx+1,total);
     $('psFill').style.width=Math.max(4,pct)+'%';
-    $('psStatus').textContent=(STAGE_TEXT[visualStage]||STAGE_TEXT.start)+'…';
+    stageStatus=visualStage;stageStalled=false;
+    $('psStatus').textContent=stageText(visualStage)+'…';
   }
 
   // Rete di sicurezza: se l'app ha chiuso la coda senza avvisare, o non arrivano notizie da minuti,
@@ -1382,8 +1391,9 @@
       }
     }
     if(Date.now()-stageProgressAt>STAGE_STALL_MS&&$('btnStageClose').hidden){
-      $('psStatus').textContent='Nessun aggiornamento da qualche minuto.';
-      $('psNote').textContent='Puoi chiudere questa schermata e controllare l’ultimo report di pubblicazione.';
+      stageStalled=true;
+      $('psStatus').textContent=t('ps.stall');
+      $('psNote').textContent=t('ps.stallNote');
       $('btnStageClose').hidden=false;
     }
   }
@@ -1404,13 +1414,13 @@
   };
 
   function startQueue(dryRun){
-    if(!queue.length)return alert('La coda è vuota. Aggiungi almeno una storia.');
+    if(!queue.length)return alert(t('queue.emptyAlert'));
     // Il nome dei canali serve a verificare di pubblicare sull'account giusto.
     const target=cfgMetaTarget.value.trim();
-    queue.forEach(it=>{ if(!it.metaTarget)it.metaTarget=target; });
+    queue.forEach(it=>{ if(!it.metaTarget)it.metaTarget=target; it.uiLang=I18N.lang(); });
     // Senza il nome della pagina non si parte: si apre il passaggio dell'onboarding che spiega dove trovarlo.
     if(queue.some(it=>!it.metaTarget))return openOnboarding(OB_CHANNEL_STEP);
-    if(workflowActive)return alert('Una richiesta è già in corso.');
+    if(workflowActive)return alert(t('queue.busy'));
 
     activeRequestId='sf-'+Date.now();
     lastProgressPct=0;workflowActive=true;lastActiveStage='start';currentDryRun=!!dryRun;
@@ -1419,7 +1429,7 @@
     $('publishDiagnosis').hidden=true;
     $('publishOutcome').hidden=true;
     $('progressFill').style.width='5%';
-    $('progressLast').textContent='Avvio della pubblicazione…';
+    $('progressLast').textContent=t('pm.starting');
     openStage(!!dryRun, dryRun?queue.slice(0,1):queue);
 
     if(isNativeApp()){
@@ -1441,7 +1451,7 @@
   $('btnCloseProgress').onclick=()=>{progressModal.hidden=true;};
   $('btnCopyError').onclick=async()=>{
     if(!reportCache)return;
-    try {await navigator.clipboard.writeText(reportCache);$('btnCopyError').textContent='Copiato';} catch(_){}
+    try {await navigator.clipboard.writeText(reportCache);$('btnCopyError').textContent=t('pm.copied');} catch(_){}
   };
   $('btnLastReport').onclick=()=>{
     progressModal.hidden=false;$('publishOutcome').hidden=true;
@@ -1449,9 +1459,9 @@
       const raw = window.StoryFlowNative.getLastReport();
       try {
         const msg = JSON.parse(raw);
-        if(!msg.available){$('progressLast').textContent='Nessuna esecuzione memorizzata.';return;}
+        if(!msg.available){$('progressLast').textContent=t('rep.noneStored');return;}
         if(msg.summary?.err>0) updateProgress({stage:'error',failedStage:msg.lastError?.stage||'start',message:msg.lastError?.message,log:msg.log});
-        else $('progressLast').textContent=`Ultima esecuzione OK: ${msg.summary?.ok||0} pubblicate, 0 errori.`;
+        else $('progressLast').textContent=t('rep.lastOk',{ok:msg.summary?.ok||0});
       } catch(_){}
       return;
     }
@@ -1467,11 +1477,11 @@
     } else if(msg.status==='PROGRESS'&&msg.progress){
       handleProgress(msg.progress);
     } else if(msg.status==='START_FAILED'&&workflowActive&&msg.reqId===activeRequestId){
-      handleProgress({stage:'error',failedStage:'start',index:1,total:queue.length||1,dryRun:currentDryRun,message:String(msg.error||'Avvio non riuscito'),log:[]});
+      handleProgress({stage:'error',failedStage:'start',index:1,total:queue.length||1,dryRun:currentDryRun,message:String(msg.error||t('rep.startFailed')),log:[]});
     } else if(msg.status==='LAST_REPORT'){
-      if(!msg.available){$('progressLast').textContent='Nessuna esecuzione precedente.';return;}
+      if(!msg.available){$('progressLast').textContent=t('rep.none');return;}
       if(msg.summary?.err>0) updateProgress({stage:'error',failedStage:msg.lastError?.stage||'start',message:msg.lastError?.message||msg.errorLine,log:msg.log});
-      else $('progressLast').textContent=`Completate: ${msg.summary?.ok||0}. Errori: ${msg.summary?.err||0}.`;
+      else $('progressLast').textContent=t('rep.summary',{ok:msg.summary?.ok||0,err:msg.summary?.err||0});
     }
   });
 
@@ -1497,10 +1507,10 @@
   const ONBOARDING_KEY='storyflow.onboarding.v1';
   const OB_STEPS=4, OB_CHANNEL_STEP=3;
   const obModal=$('onboardingModal'), obMetaTarget=$('obMetaTarget');
-  let obStep=0, obSetupBusy=false, obSkipWarned=false, obGuideChecked=false, setupResolver=null;
+  let obStep=0, obSetupBusy=false, obSkipWarned=false, setupResolver=null;
   const nativeHas=name=>isNativeApp()&&typeof window.StoryFlowNative[name]==='function';
   const onboardingDone=()=>{try{return localStorage.getItem(ONBOARDING_KEY)==='done';}catch(_){return true;}};
-  PATTERNS.forEach(([id,name])=>{const o=document.createElement('option');o.value=id;o.textContent=name;$('obPattern').appendChild(o);});
+  fillPatternSelect($('obPattern'));
 
   // Desktop: la funzione restituisce una Promise. Android: risponde con window.__onStoryFlowSetupResult.
   function nativeSetup(method,...args){
@@ -1533,13 +1543,13 @@
   }
   function showSetupFailure(res,target){
     const name=res.text||target||'';
-    if(res.reason==='login')return showObResult('err','Prima devi accedere a Meta Business Suite: ti abbiamo aperto la pagina di accesso. Fatto l’accesso, torna qui e riprova.');
+    if(res.reason==='login')return showObResult('err',t('ob.errLogin'));
     if(res.reason==='notfound'){
-      if(res.suggestion)return showObResult('err',`Non troviamo «${name}» nella pagina delle storie di Meta, ma c’è «${res.suggestion}»: cambia solo qualche maiuscola.`,[[`Usa «${res.suggestion}»`,()=>{setMetaTarget(res.suggestion);showObResult('ok',`Fatto! Pubblicheremo su «${res.suggestion}».`);}]]);
-      return showObResult('err',`Non troviamo «${name}» nella pagina delle storie di Meta. Controlla maiuscole, spazi e punteggiatura`+(nativeHas('pickMetaTarget')?', oppure usa «Trova il nome in Meta».':' e che la pagina sia collegata a Meta Business Suite.'));
+      if(res.suggestion)return showObResult('err',t('ob.errSuggest',{name,suggestion:res.suggestion}),[[t('ob.useSuggestion',{name:res.suggestion}),()=>{setMetaTarget(res.suggestion);showObResult('ok',t('ob.doneSuggestion',{name:res.suggestion}));}]]);
+      return showObResult('err',t(nativeHas('pickMetaTarget')?'ob.errNotFoundPick':'ob.errNotFound',{name}));
     }
-    const msg={cancel:'Scelta annullata: puoi riprovare quando vuoi.',timeout:'Tempo scaduto: riprova quando vuoi.',busy:'C’è già un’operazione in corso con Meta: aspetta che finisca.',navigated:'La pagina di Meta è cambiata prima della scelta: riprova.'}[res.reason];
-    showObResult('err',msg||'Qualcosa non ha funzionato: riprova tra poco.');
+    const key={cancel:'ob.errCancel',timeout:'ob.errTimeout',busy:'ob.errBusy',navigated:'ob.errNavigated'}[res.reason];
+    showObResult('err',t(key||'ob.errGeneric'));
   }
   function setPickBusy(busy){
     obSetupBusy=busy;
@@ -1549,22 +1559,22 @@
   async function obPick(){
     if(obSetupBusy||workflowActive)return;
     setPickBusy(true);
-    showObResult('wait','Si è aperta la pagina delle storie di Meta: clicca sul nome della tua pagina.');
+    showObResult('wait',t('ob.pickWait'));
     const res=await nativeSetup('pickMetaTarget');
     setPickBusy(false);
-    if(res.ok){setMetaTarget(res.text);showObResult('ok',`Perfetto! Pubblicheremo su «${res.text}». Se vuoi puoi modificarlo nella casella e poi premere «Verifica».`);}
+    if(res.ok){setMetaTarget(res.text);showObResult('ok',t('ob.pickOk',{name:res.text}));}
     else showSetupFailure(res);
   }
   async function obVerify(){
     const target=obMetaTarget.value.trim();
-    if(!target)return showObResult('err','Scrivi prima il nome della pagina.');
+    if(!target)return showObResult('err',t('ob.needName'));
     if(obSetupBusy||workflowActive)return;
     setMetaTarget(target);
     setPickBusy(true);
-    showObResult('wait','Controllo nella pagina delle storie di Meta… può volerci fino a mezzo minuto.');
+    showObResult('wait',t('ob.verifyWait'));
     const res=await nativeSetup('verifyMetaTarget',target);
     setPickBusy(false);
-    if(res.ok)showObResult('ok',`Trovato! Meta mostra «${target}»: pubblicheremo lì.`);
+    if(res.ok)showObResult('ok',t('ob.verifyOk',{name:target}));
     else showSetupFailure(res,target);
   }
 
@@ -1579,13 +1589,22 @@
     const p=getProfile();p.defaults=safeStyle({...p.defaults,[key]:value});persistStore();
     drawObPreview();
   }
-  // Se esiste uno screenshot vero (onboarding/dove-pubblichiamo.png) lo usiamo al posto dell'illustrazione.
+  // Illustrazione nella lingua del pannello (dove-pubblichiamo.svg in italiano, dove-pubblichiamo-en.svg…).
+  // Se esiste uno screenshot vero (onboarding/dove-pubblichiamo.png, dove-pubblichiamo-en.png…) lo usiamo al suo posto.
+  const guideReal={};
   function loadGuideScreenshot(){
-    if(obGuideChecked)return;
-    obGuideChecked=true;
+    const lang=I18N.lang(), suffix=lang==='it'?'':'-'+lang;
+    const show=real=>{
+      $('obGuideImage').src=`onboarding/dove-pubblichiamo${suffix}.${real?'png':'svg'}`;
+      $('obGuideCaption').dataset.i18n=real?'ob.guideCaptionReal':'ob.guideCaption';
+      $('obGuideCaption').textContent=t($('obGuideCaption').dataset.i18n);
+    };
+    if(lang in guideReal)return show(guideReal[lang]);
+    show(false);
     const real=new Image();
-    real.onload=()=>{$('obGuideImage').src=real.src;$('obGuideCaption').textContent='Esempio dalla pagina delle storie di Meta Business Suite.';};
-    real.src='onboarding/dove-pubblichiamo.png';
+    real.onload=()=>{guideReal[lang]=true;if(I18N.lang()===lang)show(true);};
+    real.onerror=()=>{guideReal[lang]=false;};
+    real.src=`onboarding/dove-pubblichiamo${suffix}.png`;
   }
   function showObStep(n){
     obStep=clamp(n,0,OB_STEPS-1);
@@ -1594,9 +1613,10 @@
       const i=Number(li.dataset.step);
       li.classList.toggle('active',i===obStep);li.classList.toggle('done',i<obStep);
     });
-    $('obCount').textContent=`${obStep+1} di ${OB_STEPS}`;
+    $('obCount').textContent=t('ob.count',{i:obStep+1,n:OB_STEPS});
     $('btnObBack').disabled=obStep===0;
-    $('btnObNext').textContent=obStep===OB_STEPS-1?'Fatto, iniziamo!':'Avanti →';
+    $('btnObNext').dataset.i18n=obStep===OB_STEPS-1?'ob.finish':'ob.next';
+    $('btnObNext').textContent=t($('btnObNext').dataset.i18n);
     if(obStep===1){
       $('obColor').value=currentStyle.brandColor;$('obDarkColor').value=currentStyle.darkColor;$('obPattern').value=currentStyle.pattern;
       drawObPreview();
@@ -1613,7 +1633,8 @@
     const canPick=nativeHas('pickMetaTarget');
     $('obPickBox').hidden=!canPick;
     $('btnObVerify').hidden=!nativeHas('verifyMetaTarget');
-    $('obTargetLabel').textContent=canPick?'Nome della pagina (lo compiliamo noi, oppure scrivilo tu)':'Nome della pagina';
+    $('obTargetLabel').dataset.i18n=canPick?'ob.targetLabelPick':'ob.targetLabel';
+    $('obTargetLabel').textContent=t($('obTargetLabel').dataset.i18n);
     $('obManual').open=!canPick;
     obModal.hidden=false;
     showObStep(step);
@@ -1627,7 +1648,7 @@
   function applyObSite(){
     const value=$('obSite').value.trim();
     if(!/^https?:\/\/[^\s/]+\.[^\s]+/i.test(value)){
-      const fb=$('obSiteFeedback');fb.className='ob-feedback err';fb.textContent='Scrivi l’indirizzo completo, per esempio https://iltuosito.it';
+      const fb=$('obSiteFeedback');fb.className='ob-feedback err';fb.textContent=t('ob.siteInvalid');
       return false;
     }
     if(value!==siteUrl.value.trim()){siteUrl.value=value;siteUrl.dispatchEvent(new Event('change'));}
@@ -1636,11 +1657,11 @@
   $('btnObFetch').onclick=async()=>{
     if(!applyObSite())return;
     const fb=$('obSiteFeedback'),b=$('btnObFetch');
-    fb.className='ob-feedback';fb.textContent='Cerco gli articoli…';b.disabled=true;
+    fb.className='ob-feedback';fb.textContent=t('ob.searching');b.disabled=true;
     const n=await fetchNews();
     b.disabled=false;
     fb.className='ob-feedback '+(n?'ok':'err');
-    fb.textContent=n?`Trovati ${n} articoli: ci siamo!`:'Non riusciamo a leggere gli articoli di questo sito. Controlla l’indirizzo: per un blog WordPress basta l’indirizzo principale.';
+    fb.textContent=n?tn('ob.found',n):t('ob.siteFail');
   };
   $('obColor').addEventListener('input',e=>obStyle('brandColor',e.target.value));
   $('obDarkColor').addEventListener('input',e=>obStyle('darkColor',e.target.value));
@@ -1661,10 +1682,10 @@
     const fb=$('obMetaFeedback');fb.className='ob-feedback';
     if(isNativeApp()){
       window.StoryFlowNative.openMetaLogin();
-      fb.textContent=nativePlatform()==='desktop'?'Dopo l’accesso torna qui con la scheda «Pannello storie» in alto.':'Dopo l’accesso torna qui con il pulsante «Torna a StoryFlow Studio».';
+      fb.textContent=t(nativePlatform()==='desktop'?'ob.metaBackDesktop':'ob.metaBackAndroid');
     } else {
       window.open('https://business.facebook.com/','_blank','noopener');
-      fb.textContent='Si è aperta una nuova scheda: accedi lì, poi torna su questa.';
+      fb.textContent=t('ob.metaNewTab');
     }
   };
   // Nelle app il link alla pagina delle storie si apre nella vista Meta, dove l'accesso è già fatto.
@@ -1687,13 +1708,47 @@
     if(obStep<OB_STEPS-1)return showObStep(obStep+1);
     if(!getProfile().metaTarget&&!obSkipWarned){
       obSkipWarned=true;
-      return showObResult('err','Senza il nome della pagina non possiamo pubblicare. Puoi aggiungerlo anche dopo da «Impostazioni sito»: premi di nuovo «Fatto» per chiudere comunque.');
+      return showObResult('err',t('ob.skipWarn'));
     }
     closeOnboarding();
   };
   $('btnObClose').onclick=closeOnboarding;
   $('btnGuide').onclick=()=>openOnboarding(0);
   $('btnMetaTargetHelp').onclick=()=>openOnboarding(OB_CHANNEL_STEP);
+
+  // --- LINGUA ---
+  // Al cambio di lingua l'HTML si traduce da solo (i18n/i18n.js); qui si rifanno i testi creati dal codice.
+  let newsCount=null, newsSource='';
+  function showNewsInfo(){
+    if(newsCount===null)return;
+    $('newsCount').textContent=tn('news.count',newsCount);
+    const sourceHint=$('feedSource');
+    sourceHint.dataset.i18n=newsSource==='rss'?'news.sourceRss':'news.sourceWp';
+    sourceHint.textContent=t(sourceHint.dataset.i18n);
+  }
+  // Le app usano la lingua del pannello per i propri testi e per la guida nella pagina di Meta.
+  const tellNativeLang=()=>{ if(nativeHas('setLanguage'))try{window.StoryFlowNative.setLanguage(I18N.lang());}catch(_){} };
+  I18N.onChange(()=>{
+    fillPatternSelect(cfgPattern);fillPatternSelect($('obPattern'));
+    $('patternCount').textContent=t('style.patternCount',{n:PATTERNS.length});
+    buildPatternGrid();
+    if(engineVersion)$('versionTag').textContent=t('nav.versionEngine',{engine:engineVersion});
+    showNewsInfo();
+    $('backgroundInfo').textContent=t(getProfile().backgroundData?'bg.loaded':'bg.none');
+    $('logoInfo').textContent=t(getProfile().logoData?'logo.loaded':'logo.none');
+    $('editorToggleLabel').textContent=t($('editorToggleLabel').dataset.i18n||'ed.open');
+    setExtensionState(extensionConnected);
+    updateQueueUI();renderTitleChoices();renderStory();
+    if(!obModal.hidden)showObStep(obStep);
+    if(!publishStage.hidden){
+      const idx=runItems.findIndex(it=>it.id===stageItemId);
+      showStageItem(runItems[idx]||null,idx>=0?idx+1:1,runItems.length||1);
+      $('psStatus').textContent=stageStalled?t('ps.stall'):stageText(stageStatus)+'…';
+      if(stageStalled)$('psNote').textContent=t('ps.stallNote');
+    }
+    tellNativeLang();
+  });
+  tellNativeLang();
 
   siteUrl.value=store.lastSite||DEFAULT_SITE;
   currentStyle=safeStyle(getProfile().defaults);

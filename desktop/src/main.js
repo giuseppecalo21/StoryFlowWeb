@@ -8,6 +8,7 @@ const { app, BaseWindow, WebContentsView, ipcMain, session, shell, net, Menu, po
 const fs = require('node:fs');
 const path = require('node:path');
 const { EngineManager } = require('./engine');
+const i18n = require('./i18n');
 
 const ROOT = path.join(__dirname, '..');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
@@ -52,6 +53,24 @@ const setup = { busy: false };
 
 const reportPath = () => path.join(app.getPath('userData'), 'last-report.json');
 
+// Lingua dei testi dell'app: quella scelta nel pannello (ricordata), altrimenti quella del sistema.
+const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
+let uiLang = '';
+const lang = () => uiLang || i18n.supported(app.getLocale()) || 'en';
+/** @param {Parameters<typeof i18n.t>[1]} key @param {Record<string, string|number>} [params] */
+const tr = (key, params) => i18n.t(lang(), key, params);
+function loadSettings() {
+  try { uiLang = i18n.supported(JSON.parse(fs.readFileSync(settingsPath(), 'utf8')).lang); } catch (_) { uiLang = ''; }
+}
+function setLanguage(code) {
+  const next = i18n.supported(code);
+  if (!next || next === uiLang) return;
+  uiLang = next;
+  try { fs.writeFileSync(settingsPath(), JSON.stringify({ lang: uiLang })); } catch (_) {}
+  buildMenu();
+  pushToolbarState();
+}
+
 function hostMatches(url, domain) {
   try {
     const h = new URL(url).hostname;
@@ -94,7 +113,9 @@ function pushToolbarState() {
     running: run.running,
     progressText,
     metaLoggedIn,
-    engine: engine.info()
+    engine: engine.info(),
+    lang: lang(),
+    texts: i18n.shellTexts(lang())
   });
 }
 
@@ -147,7 +168,7 @@ function createWindow() {
   sw.setWindowOpenHandler(({ url }) => { openExternal(url); return { action: 'deny' }; });
   sw.on('will-navigate', (e, url) => { if (!isStudioUrl(url)) { e.preventDefault(); openExternal(url); } });
   sw.on('did-fail-load', (_e, code, desc, url, isMainFrame) => {
-    if (isMainFrame && code !== -3) progressText = `Pannello non raggiungibile (${desc}). Controlla la connessione e premi Ctrl+R.`;
+    if (isMainFrame && code !== -3) progressText = tr('studioUnreachable', { error: desc });
     pushToolbarState();
   });
 
@@ -164,7 +185,7 @@ function createWindow() {
   mw.on('did-finish-load', () => { maybeInject(); void refreshMetaLogin(); });
   mw.on('did-navigate', () => { void refreshMetaLogin(); });
   mw.on('render-process-gone', (_e, details) => {
-    if (run.running) failRun(`La pagina Meta si è chiusa inaspettatamente (${details.reason}).`);
+    if (run.running) failRun(tr('metaCrashed', { reason: details.reason }));
   });
   mw.debugger.on('detach', () => {});
 
@@ -195,7 +216,7 @@ function startWatchdog() {
     if (!run.running) return;
     maybeInject();
     if (Date.now() - run.lastProgressAt > STALL_TIMEOUT_MS) {
-      failRun('Nessun avanzamento da 4 minuti: la pagina Meta potrebbe essere bloccata.');
+      failRun(tr('stalled'));
     }
   }, 2000);
 }
@@ -220,7 +241,7 @@ async function startQueue(payloadJson) {
   run.stopAfter = false;
   run.lastProgressAt = Date.now();
   if (run.screenLock < 0) run.screenLock = powerSaveBlocker.start('prevent-display-sleep');
-  progressText = 'Avvio pubblicazione…';
+  progressText = tr('starting');
   pushToolbarState();
   // Prima di partire controlla se c'è un motore più recente (massimo 5 secondi di attesa).
   await withTimeout(engine.checkForUpdate(), 5000);
@@ -265,7 +286,7 @@ function failRun(message) {
     run.state.lastError = { stage: 'start', message, at: Date.now() };
     run.state.log.push('ERRORE: ' + message);
   }
-  forwardProgress({ stage: 'error', index: (run.state?.done || 0) + 1, total: run.state?.total || 1, dryRun: run.state?.dryRun, message, log: run.state?.log || [] });
+  forwardProgress({ stage: 'error', index: (run.state?.done || 0) + 1, total: run.state?.total || 1, dryRun: run.state?.dryRun, message, msgLang: lang(), log: run.state?.log || [] });
   finishRun();
 }
 
@@ -294,7 +315,7 @@ function nextStory(dryRun) {
     forwardProgress({
       stage: 'stopped', index: Math.min(Math.max(1, Number(st.done) || 1), Math.max(1, total)), total,
       dryRun: Boolean(st.dryRun), ok: Number(st.ok) || 0, err: Number(st.err) || 0, remainingIds,
-      message: 'Coda fermata su richiesta'
+      message: tr('stopped'), msgLang: lang()
     });
     finishRun();
     return;
@@ -339,7 +360,7 @@ async function runMetaSetup(kind, text) {
   /** @type {(() => void) | null} */ let stopWatching = null;
   let needsLogin = false;
   try {
-    progressText = kind === 'pick' ? 'Clicca sul nome della tua pagina in Meta Business Suite' : 'Verifica del nome della pagina…';
+    progressText = tr(kind === 'pick' ? 'pickPrompt' : 'verifying');
     pushToolbarState();
     try { await mw.loadURL(`${COMPOSER_URL}?sf_setup=${Date.now()}`); } catch (_) {}
     if (!isComposerUrl(mw.getURL())) {
@@ -349,7 +370,7 @@ async function runMetaSetup(kind, text) {
       return cleanSetupResult({ reason: 'login' });
     }
     if (kind === 'pick') showView('meta');
-    const call = kind === 'pick' ? 'window.__sfMetaSetup.pick()' : `window.__sfMetaSetup.verify(${JSON.stringify(String(text || ''))})`;
+    const call = kind === 'pick' ? `window.__sfMetaSetup.pick(${JSON.stringify({ lang: lang() })})` : `window.__sfMetaSetup.verify(${JSON.stringify(String(text || ''))})`;
     // Se la pagina cambia o si chiude, lo script iniettato non risponderà più.
     const interrupted = new Promise(resolve => {
       const onNav = () => resolve({ reason: 'navigated' });
@@ -433,6 +454,7 @@ function registerIpc() {
     if (!fromStudio(e) || !setup.busy) return;
     metaView.webContents.executeJavaScript('window.__sfMetaSetup && window.__sfMetaSetup.cancel()').catch(() => {});
   });
+  ipcMain.on('sf:setLanguage', (e, code) => { if (fromStudio(e)) setLanguage(String(code || '')); });
   ipcMain.on('sf:getLastReport', e => { e.returnValue = fromStudio(e) ? lastReport() : JSON.stringify({ available: false }); });
   ipcMain.on('sf:getEngineInfo', e => { e.returnValue = JSON.stringify(engine.info()); });
   ipcMain.on('sf:isQueueRunning', e => { e.returnValue = (fromStudio(e) || fromMeta(e)) && run.running; });
@@ -482,14 +504,14 @@ function buildMenu() {
     ...(isMac ? [/** @type {Electron.MenuItemConstructorOptions} */ ({ role: 'appMenu' })] : []),
     { role: 'editMenu' },
     {
-      label: 'Visualizza',
+      label: tr('menuView'),
       submenu: [
-        { label: 'Pannello StoryFlow', accelerator: 'CmdOrCtrl+1', click: () => showView('studio') },
-        { label: 'Meta Business Suite', accelerator: 'CmdOrCtrl+2', click: () => showView('meta') },
+        { label: tr('menuStudio'), accelerator: 'CmdOrCtrl+1', click: () => showView('studio') },
+        { label: tr('menuMeta'), accelerator: 'CmdOrCtrl+2', click: () => showView('meta') },
         { type: 'separator' },
-        { label: 'Ricarica pannello', accelerator: 'CmdOrCtrl+R', click: () => studioView.webContents.reloadIgnoringCache() },
-        { label: 'Strumenti sviluppatore (pannello)', accelerator: 'F12', click: () => studioView.webContents.toggleDevTools() },
-        { label: 'Strumenti sviluppatore (Meta)', accelerator: 'Shift+F12', click: () => metaView.webContents.toggleDevTools() }
+        { label: tr('menuReload'), accelerator: 'CmdOrCtrl+R', click: () => studioView.webContents.reloadIgnoringCache() },
+        { label: tr('menuDevStudio'), accelerator: 'F12', click: () => studioView.webContents.toggleDevTools() },
+        { label: tr('menuDevMeta'), accelerator: 'Shift+F12', click: () => metaView.webContents.toggleDevTools() }
       ]
     }
   ];
@@ -514,6 +536,7 @@ app.whenReady().then(() => {
     cacheDir: path.join(app.getPath('userData'), 'engine'),
     fetch: url => net.fetch(url, { cache: 'no-store' })
   });
+  loadSettings();
   registerIpc();
   buildMenu();
   createWindow();

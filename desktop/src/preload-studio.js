@@ -4,6 +4,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('StoryFlowNative', {
   getPlatform: () => 'desktop',
+  setLanguage: lang => ipcRenderer.send('sf:setLanguage', String(lang)),
   startQueue: json => ipcRenderer.send('sf:startQueue', String(json)),
   isQueueRunning: () => ipcRenderer.sendSync('sf:isQueueRunning'),
   setStopAfterCurrent: stop => ipcRenderer.send('sf:setStopAfterCurrent', Boolean(stop)),

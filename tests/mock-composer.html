@@ -20,13 +20,17 @@
 <div id="app"></div>
 <script>
 // Riproduce in modo semplificato il composer storie di Meta Business Suite per provare il motore
-// in più lingue. ?lang=it|en|de (de = lingua non supportata, per provare la diagnostica).
+// in più lingue. ?lang=it|en|es|fr|pt|de (de = lingua non supportata, per provare la diagnostica).
 (() => {
   const lang = new URLSearchParams(location.search).get('lang') || 'it';
   document.documentElement.lang = lang;
   const L = {
     it: { addMedia: 'Aggiungi foto/video', addLink: 'Aggiungi link', editLink: 'Modifica link', apply: 'Applica', edit: 'Modifica', editPhoto: 'Modifica foto', more: 'Altri adesivi', cancel: 'Annulla', share: 'Condividi', heading: 'Aggiungi adesivo con link', create: 'Create link sticker', remove: 'remove', shared: 'La tua storia è stata condivisa' },
     en: { addMedia: 'Add photo/video', addLink: 'Add link', editLink: 'Edit link', apply: 'Apply', edit: 'Edit', editPhoto: 'Edit photo', more: 'More stickers', cancel: 'Cancel', share: 'Share', heading: 'Add link sticker', create: 'Create link sticker', remove: 'Remove', shared: 'Your story has been shared' },
+    // es, fr, pt: etichette raccolte su Meta reale (29/10/2026); l'adesivo link ha l'aria-label in inglese.
+    es: { addMedia: 'Agregar foto/video', addLink: 'Agregar enlace', editLink: 'Editar enlace', apply: 'Aplicar', edit: 'Editar', editPhoto: 'Editar foto', more: 'Más stickers', cancel: 'Cancelar', share: 'Compartir', heading: 'Agregar sticker de enlace', create: 'Create link sticker', remove: 'remove', shared: 'Se está publicando tu historia. Puede que tarde unos minutos.' },
+    fr: { addMedia: 'Ajouter une photo/vidéo', addLink: 'Ajouter un lien', editLink: 'Modifier le lien', apply: 'Appliquer', edit: 'Modifier', editPhoto: 'Modifier la photo', more: 'Plus de stickers', cancel: 'Annuler', share: 'Partager', heading: 'Ajouter un sticker à lien', create: 'Create link sticker', remove: 'remove', shared: 'Votre story a été publiée.' },
+    pt: { addMedia: 'Adicionar foto/vídeo', addLink: 'Adicionar link', editLink: 'Editar link', apply: 'Aplicar', edit: 'Editar', editPhoto: 'Editar foto', more: 'Mais figurinhas', cancel: 'Cancelar', share: 'Compartilhar', heading: 'Adicionar figurinha de link', create: 'Create link sticker', remove: 'remove', shared: 'Seu story foi publicado.' },
     de: { addMedia: 'Foto/Video hinzufügen', addLink: 'Link hinzufügen', editLink: 'Link bearbeiten', apply: 'Anwenden', edit: 'Bearbeiten', editPhoto: 'Foto bearbeiten', more: 'Weitere Sticker', cancel: 'Abbrechen', share: 'Teilen', heading: 'Link-Sticker hinzufügen', create: 'Link-Sticker erstellen', remove: 'Entfernen', shared: 'Deine Story wurde geteilt' }
   }[lang];
 

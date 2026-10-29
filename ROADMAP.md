@@ -16,6 +16,13 @@ Durante la coda il pannello mostra la storia in lavorazione con una scansione an
 - **Android** (la parte Kotlin non è stata compilata qui): compilare e provare su un telefono vero schermo acceso, tasto Indietro bloccato durante la coda, stop dopo la storia attuale e chiusura automatica dopo 4 minuti senza avanzamenti.
 - **App desktop**: ora la vista Meta resta nascosta durante la coda (`showMetaWhilePublishing: false` in `desktop/config.json`). Coperta dal pannello, Chromium smetteva di disegnarla e i clic automatici non arrivavano ("Popup adesivo Link non aperto"): l'opzione `disable-backgrounding-occluded-windows` in `desktop/src/main.js` la tiene attiva. Riprovare con un account vero, Test e pubblicazione; se qualcosa non va, `showMetaWhilePublishing: true` riporta Meta in primo piano.
 
+### Lingue: prova reale e revisione
+Pannello, app ed estensione sono tradotti in inglese, spagnolo, portoghese (Brasile) e francese. Prima di vendere all'estero:
+- **Etichette di Meta:** per ogni lingua, impostare Facebook in quella lingua e raccogliere i testi dei pulsanti con `tools/cattura-etichette-meta.js`, poi aggiornare `UI_LABELS` in `engine/composer.js`. Raccolte e inserite per tutte e quattro le lingue (29/10/2026); manca solo la conferma «Elimina modifiche» nelle altre lingue, che il motore usa solo se compare. Va controllata anche la parola che Meta usa per unire Pagina e profilo Instagram (in italiano «e»): le guide tradotte non la nominano e l'illustrazione usa quella più probabile.
+- **Revisione madrelingua** dei testi in `i18n/`, soprattutto portoghese del Brasile; lo spagnolo segue già la variante latinoamericana usata da Meta («agregar», «mouse»).
+- **Android:** compilare e provare `setLanguage` e i testi in `values-*` (la parte Kotlin non è stata compilata qui).
+- **Firma:** il motore è passato alla 4.1.2 (messaggi tradotti, etichette inglesi, spagnole, francesi e portoghesi verificate): va firmato e caricato sul server.
+
 ## Da ricordare
 - **Android – piano B**: pulsante "Condividi su Instagram" che passa la grafica creata all'app Instagram con l'intent ufficiale per le storie, per quando l'automazione non è disponibile. L'adesivo link andrà aggiunto a mano dall'utente.
 
@@ -33,7 +40,7 @@ Dopo il cambio: alzare la versione dell'estensione e delle app, rifare i pacchet
 
 ### Firma del motore
 - Generare le chiavi **una sola volta**: `node tools/engine-keygen.mjs --android ../StoryFlow`. Conservare `keys/engine-private.pem` con cura, con una copia di sicurezza fuori dal PC.
-- Firmare il motore (oggi alla 4.0.1): `node tools/engine-sign.mjs`, poi caricare sul server `engine/composer.js` e `engine/manifest.json`.
+- Firmare il motore (oggi alla 4.1.2): `node tools/engine-sign.mjs`, poi caricare sul server `engine/composer.js` e `engine/manifest.json`.
 - Finché le chiavi mancano, le app rifiutano gli aggiornamenti dal server e usano solo il motore incluso nel pacchetto.
 
 ### Android
@@ -51,7 +58,7 @@ Dopo il cambio: alzare la versione dell'estensione e delle app, rifare i pacchet
 - Icona e nome definitivi, firma del codice Windows e notarizzazione Apple.
 
 ## Motore
-- Prima prova reale con Meta Business Suite in inglese per confermare i testi dei pulsanti in `UI_LABELS`.
+- Prima prova reale di pubblicazione (in modalità Test) con Meta Business Suite in inglese, spagnolo, portoghese e francese per confermare i testi dei pulsanti in `UI_LABELS` (vedi «Lingue: prova reale e revisione»).
 - Invio automatico dei rapporti d'errore al server, per accorgersi dei cambi di Meta prima che li segnalino i clienti.
 
 ## Titoli AI

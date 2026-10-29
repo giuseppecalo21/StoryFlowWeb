@@ -7,8 +7,9 @@ Pannello web per creare storie da articoli (WordPress REST / RSS) e pubblicarle 
 | Cartella / file | Cosa contiene | Va sul server? |
 |---|---|---|
 | `index.html`, `studio.js`, `ui.css`, `proxy.php` | Pannello storie | Sì |
+| `i18n/` | Testi del pannello nelle varie lingue | Sì |
 | `engine/` | **Motore di pubblicazione** unico (`composer.js`) + `manifest.json` firmato, `meta-setup.js` per la guida iniziale | Sì |
-| `onboarding/` | Immagini della guida iniziale | Sì |
+| `onboarding/` | Immagini della guida iniziale (una per lingua) | Sì |
 | `storyflow-extension/` | Estensione Chrome (alternativa all'app desktop) | Solo lo zip da scaricare |
 | `desktop/` | App per Windows/Mac (Electron) | No |
 | `tools/` | Script per chiavi, firma e copia del motore | No |
@@ -47,11 +48,22 @@ Entro pochi minuti tutte le app usano la nuova versione: al successivo avvio, a 
 
 Ogni tanto esegui `node tools/sync-engine.mjs --android ../StoryFlow`: copia il motore aggiornato dentro estensione e app Android, così anche il motore incluso nel pacchetto resta recente.
 
+## Lingue
+
+Pannello, app desktop, app Android, guida nella pagina di Meta ed estensione sono in **italiano, inglese, spagnolo, portoghese (Brasile) e francese**. La lingua si sceglie da sola (browser o telefono; inglese per le lingue non previste) e si cambia dal menu in alto o nella guida iniziale. Le app seguono la lingua scelta nel pannello e la ricordano.
+
+- **Pannello:** i testi stanno in `i18n/<lingua>.js`; l'italiano (`i18n/it.js`) è il riferimento. Nell'HTML gli elementi hanno `data-i18n` (testo), `data-i18n-html` (testo con `<strong>`, `<a>`…) o `data-i18n-attr` (`placeholder`, `title`…); nel codice si usa `t('chiave')` e `tn('chiave', n)` per i plurali (`chiave_one`, `chiave_other`, facoltativa `chiave_zero`). Si può forzare una lingua con `?lang=en` nell'indirizzo.
+- **Nuova lingua:** copia `i18n/en.js` in `i18n/<codice>.js`, traduci, aggiungi lo `<script>` in `index.html` e il codice in `LANGS` di `i18n/i18n.js`. Poi le stesse voci in `desktop/src/i18n.js`, `MESSAGES` di `engine/composer.js`, `TEXTS` di `engine/meta-setup.js`, `values-<codice>/strings.xml` nell'app Android, `storyflow-extension/_locales/` e l'illustrazione `onboarding/dove-pubblichiamo-<codice>.svg`. `node tests/i18n.test.mjs` segnala chiavi mancanti, segnaposto `{…}` diversi e testi italiani rimasti.
+- **Motore:** i messaggi di avanzamento seguono la lingua del pannello (`uiLang` delle storie in coda, `msgLang` nei messaggi). I messaggi d'errore tecnici restano in italiano: finiscono nel rapporto per l'assistenza, mentre il pannello spiega il problema nella lingua dell'utente.
+- **Titoli AI:** le istruzioni a Gemini restano in italiano e chiedono titoli nella stessa lingua del titolo originale, quindi funzionano anche con siti in altre lingue.
+
 ### Lingue di Meta Business Suite
 
 Il motore riconosce i pulsanti in **italiano** e **inglese** e prova sempre prima la lingua della pagina. Se un pulsante non viene trovato, il rapporto d'errore elenca i pulsanti visibili (es. `Pulsanti visibili: Foto/Video hinzufügen | …`). Basta copiarli nella voce giusta di `UI_LABELS` per aggiungere una lingua.
 
-> I testi inglesi sono ricostruiti, non ancora verificati su un account Meta reale in inglese: va fatta una prova in modalità Test con Meta impostato in inglese.
+Per raccogliere in un colpo solo tutte le etichette di una nuova lingua: imposta Facebook in quella lingua, apri il composer storie in Chrome, incolla `tools/cattura-etichette-meta.js` nella Console e fai a mano il percorso di una storia con adesivo link. Il pulsante viola in alto al centro della pagina di Meta copia l'elenco completo (testi dei pulsanti, `aria-label`, titoli delle finestre, avvisi).
+
+> Inglese, spagnolo, francese e portoghese sono verificati su Meta reale (29/10/2026, con `tools/cattura-etichette-meta.js`), tranne la conferma «Discard changes», che il motore usa solo se compare. Lo stesso vale per spagnolo (variante latinoamericana di Meta: «Agregar foto/video»…), francese e portoghese del Brasile. L'`aria-label` dell'adesivo link resta in inglese («Create link sticker») in tutte le lingue provate.
 
 ## App desktop (sostituisce l'estensione)
 
@@ -83,6 +95,7 @@ Richiedono Node 20+ e Playwright con Chromium.
 node tests/engine-mock.test.mjs          # motore su un finto composer Meta (it, en, lingua sconosciuta)
 node tests/studio.test.mjs               # pannello: guida iniziale, grafica chiusa, coda rapida, titoli AI, app desktop
 node tests/meta-setup.test.mjs           # scelta e verifica del nome della pagina su una finta pagina Meta
+node tests/i18n.test.mjs                 # traduzioni: dizionari completi, nessun testo italiano nelle altre lingue
 (cd desktop && xvfb-run -a npx electron ../tests/desktop-setup.test.cjs)  # app desktop vera: "Trova il nome in Meta" e "Verifica"
 xvfb-run -a node tests/extension.test.mjs  # estensione completa, anche con motore remoto firmato (su Linux serve xvfb)
 ```
