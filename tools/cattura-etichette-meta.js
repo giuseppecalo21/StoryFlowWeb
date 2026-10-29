@@ -49,7 +49,7 @@
   const counter = document.createElement('button');
   counter.type = 'button';
   counter.setAttribute('data-sf-capture', '');
-  // In alto al centro, sopra tutto: in basso a sinistra finiva sotto i menu di Meta.
+  // In alto al centro, grande e sopra tutto: ben visibile qualunque sia la disposizione della pagina di Meta.
   counter.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:2147483647;'
     + 'padding:12px 20px;border:3px solid #fff;border-radius:10px;background:#6d28d9;color:#fff;'
     + 'font:700 15px system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.45);';
