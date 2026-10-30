@@ -300,6 +300,8 @@
   'rep.noneStored': 'No hay ejecuciones guardadas.',
   'rep.lastOk': 'Última ejecución correcta: {ok} publicadas, 0 errores.',
   'rep.none': 'No hay ejecuciones anteriores.',
+  'rep.title': 'Última publicación',
+  'rep.nothingDone': 'La última cola terminó sin publicar historias y sin informar errores.',
   'rep.summary': 'Completadas: {ok}. Errores: {err}.',
   'rep.startFailed': 'No se pudo iniciar',
 

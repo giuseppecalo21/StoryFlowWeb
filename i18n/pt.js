@@ -300,6 +300,8 @@
   'rep.noneStored': 'Nenhuma execução salva.',
   'rep.lastOk': 'Última execução OK: {ok} publicados, 0 erros.',
   'rep.none': 'Nenhuma execução anterior.',
+  'rep.title': 'Última publicação',
+  'rep.nothingDone': 'A última fila terminou sem publicar stories e sem informar erros.',
   'rep.summary': 'Concluídos: {ok}. Erros: {err}.',
   'rep.startFailed': 'Não foi possível iniciar',
 

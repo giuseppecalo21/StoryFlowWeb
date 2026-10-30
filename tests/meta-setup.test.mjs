@@ -107,6 +107,32 @@ check('Zoom: riquadro ingrandito ma dentro la pagina', bar && bar.x >= 0 && bar.
 await page.click('[data-storyflow=picker] >> text=Annulla');
 await picked;
 
+// Android: il riquadro sta in basso sopra le barre di sistema, si sposta se copre il testo scelto e con ⇅.
+{
+  const tall = await browser.newPage({ viewport: { width: 1100, height: 1400 }, locale: 'it-IT' });
+  await tall.setContent(PAGE.replace('padding:120px 40px', 'padding:120px 40px 0').replace('<section id="dest"', '<div style="height:1050px"></div><section id="dest"'));
+  await tall.evaluate(SETUP);
+  const barBox = () => tall.locator('[data-storyflow=picker] .bar').boundingBox();
+  const pickedTall = tall.evaluate(() => window.__sfMetaSetup.pick({ zoom: 1.5, safeTop: 100, safeBottom: 60 }));
+  await tall.waitForSelector('[data-storyflow=picker] >> text=Annulla');
+  let b = await barBox();
+  check('Riquadro in basso, sopra le barre di sistema', b && Math.abs(1400 - 60 - 12 - (b.y + b.height)) < 3, JSON.stringify(b));
+  const acc = await tall.locator('#acc').boundingBox();
+  await tall.mouse.click(acc.x + 20, acc.y + acc.height / 2);
+  await tall.waitForSelector('[data-storyflow=picker] >> text=Quale testo usiamo');
+  b = await barBox();
+  if (shots) await tall.screenshot({ path: join(shots, 'meta-selettore-sposta.png') });
+  check('Testo scelto sotto il riquadro: il riquadro va in alto', b && Math.abs(b.y - 112) < 3 && b.y + b.height < acc.y, JSON.stringify(b));
+  await tall.click('[data-storyflow=picker] button.move');
+  b = await barBox();
+  check('Pulsante ⇅: il riquadro torna in basso', b && b.y > 700, JSON.stringify(b));
+  check('Pulsante ⇅: ha un nome leggibile', await tall.getAttribute('[data-storyflow=picker] button.move', 'aria-label') === 'Sposta il riquadro');
+  await tall.click('[data-storyflow=picker] >> text=Scegli di nuovo');
+  await tall.click('[data-storyflow=picker] >> text=Annulla');
+  await pickedTall;
+  await tall.close();
+}
+
 // Verifica: stesso controllo del motore.
 res = await page.evaluate(() => window.__sfMetaSetup.verify('Zona Prova e zona_prova'));
 check('Verifica: testo presente', res.ok === true, JSON.stringify(res));
@@ -114,8 +140,16 @@ res = await page.evaluate(() => window.__sfMetaSetup.verify('zona prova', 1200))
 check('Verifica: maiuscole diverse → suggerisce il testo esatto', !res.ok && res.reason === 'notfound' && res.suggestion === 'Zona Prova', JSON.stringify(res));
 res = await page.evaluate(() => window.__sfMetaSetup.verify('Altra Pagina', 1200));
 check('Verifica: testo assente', !res.ok && res.reason === 'notfound' && res.suggestion === '', JSON.stringify(res));
-// Il motore deve accettare quello che la verifica accetta.
-check('Verifica allineata al motore (innerText.includes)', /document\.body\.innerText\.includes\(it\.metaTarget\)/.test(readFileSync(join(root, 'engine', 'composer.js'), 'utf8')));
+// Nome scelto con Meta in italiano, Meta ora in un'altra lingua: cambia solo la congiunzione.
+res = await page.evaluate(() => window.__sfMetaSetup.verify('Zona Prova and zona_prova', 1200));
+check('Verifica: congiunzione in un\'altra lingua accettata', res.ok === true, JSON.stringify(res));
+res = await page.evaluate(() => window.__sfMetaSetup.verify('Zona Prova o zona_prova', 1200));
+check('Verifica: altre parole al posto della congiunzione non bastano', !res.ok, JSON.stringify(res));
+// Il motore deve accettare quello che la verifica accetta: stessa funzione nei due file.
+{
+  const fnOf = file => (readFileSync(join(root, 'engine', file), 'utf8').match(/const CONNECTORS[\s\S]*?const findTarget[^\n]*/) || [''])[0];
+  check('Verifica allineata al motore (stessa regola per il nome)', fnOf('meta-setup.js') && fnOf('meta-setup.js') === fnOf('composer.js'));
+}
 
 check('Nessun errore JavaScript', errors.length === 0, errors.join(' | '));
 await browser.close();

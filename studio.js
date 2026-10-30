@@ -1453,15 +1453,29 @@
     if(!reportCache)return;
     try {await navigator.clipboard.writeText(reportCache);$('btnCopyError').textContent=t('pm.copied');} catch(_){}
   };
+  // Rapporto senza errori: la finestra viene ripulita, altrimenti mostrerebbe titolo e barra della coda precedente
+  // (es. «Storie pubblicate!» anche se l'ultima coda non ha pubblicato nulla).
+  function showReportSummary(text){
+    $('publishTitle').textContent=t('rep.title');
+    $('publishSub').textContent=t('pm.summary');
+    $('progressFill').classList.remove('completed','failed');
+    $('progressFill').style.width='0%';
+    $('progressPct').textContent='';
+    $('progressCount').textContent='';
+    document.querySelectorAll('#progressSteps li').forEach(li=>li.classList.remove('completed','active','failed'));
+    $('publishDiagnosis').hidden=true;
+    $('progressLast').textContent=text;
+  }
   $('btnLastReport').onclick=()=>{
     progressModal.hidden=false;$('publishOutcome').hidden=true;
     if(isNativeApp()){
       const raw = window.StoryFlowNative.getLastReport();
       try {
         const msg = JSON.parse(raw);
-        if(!msg.available){$('progressLast').textContent=t('rep.noneStored');return;}
+        if(!msg.available)return showReportSummary(t('rep.noneStored'));
+        const ok=Number(msg.summary?.ok)||0;
         if(msg.summary?.err>0) updateProgress({stage:'error',failedStage:msg.lastError?.stage||'start',message:msg.lastError?.message,log:msg.log});
-        else $('progressLast').textContent=t('rep.lastOk',{ok:msg.summary?.ok||0});
+        else showReportSummary(ok?t('rep.lastOk',{ok}):t('rep.nothingDone'));
       } catch(_){}
       return;
     }
@@ -1479,9 +1493,10 @@
     } else if(msg.status==='START_FAILED'&&workflowActive&&msg.reqId===activeRequestId){
       handleProgress({stage:'error',failedStage:'start',index:1,total:queue.length||1,dryRun:currentDryRun,message:String(msg.error||t('rep.startFailed')),log:[]});
     } else if(msg.status==='LAST_REPORT'){
-      if(!msg.available){$('progressLast').textContent=t('rep.none');return;}
+      if(!msg.available)return showReportSummary(t('rep.none'));
+      const ok=Number(msg.summary?.ok)||0;
       if(msg.summary?.err>0) updateProgress({stage:'error',failedStage:msg.lastError?.stage||'start',message:msg.lastError?.message||msg.errorLine,log:msg.log});
-      else $('progressLast').textContent=t('rep.summary',{ok:msg.summary?.ok||0,err:msg.summary?.err||0});
+      else showReportSummary(ok?t('rep.summary',{ok,err:0}):t('rep.nothingDone'));
     }
   });
 

@@ -100,7 +100,7 @@ node tests/i18n.test.mjs                 # traduzioni: dizionari completi, nessu
 xvfb-run -a node tests/extension.test.mjs  # estensione completa, anche con motore remoto firmato (su Linux serve xvfb)
 ```
 
-Il finto composer (`tests/mock-composer.html`) riproduce la sequenza di Meta: carica foto → link → modifica foto → adesivi → adesivo link → condividi. Non sostituisce una prova reale su Meta, ma intercetta subito le regressioni del motore.
+Il finto composer (`tests/mock-composer.html`) riproduce la sequenza di Meta: carica foto → link → modifica foto → adesivi → adesivo link → condividi. Con `?static=1` aggiunge una scritta simile a una conferma («dove verrà pubblicata la storia»): dopo Condividi conta solo una frase di conferma comparsa dopo il clic. Non sostituisce una prova reale su Meta, ma intercetta subito le regressioni del motore.
 
 ## Guida iniziale e nome della pagina Meta
 
@@ -111,7 +111,11 @@ L'ultimo passaggio è il più importante: prima di pubblicare, il motore control
 - **App desktop e Android:** "Trova il nome in Meta" apre la pagina delle storie e l'utente clicca sul nome della sua pagina; il testo viene copiato così com'è. "Verifica" ripete lo stesso controllo del motore e, se cambia solo qualche maiuscola, propone il nome esatto. Lo script è `engine/meta-setup.js` e non dipende dai nomi dei menu di Meta.
 - **Estensione / browser:** guida passo passo con un'illustrazione. Per mostrare uno screenshot vero basta caricare `onboarding/dove-pubblichiamo.png`: il pannello lo usa al posto di `onboarding/dove-pubblichiamo.svg`.
 
-Se durante la pubblicazione il nome non viene trovato, il pannello lo spiega in parole semplici e offre il pulsante per correggerlo.
+Se durante la pubblicazione il nome non viene trovato, il pannello lo spiega in parole semplici e offre il pulsante per correggerlo. Il motore se ne accorge pochi secondi dopo che il composer è pronto (al massimo 25 secondi se Meta è lento), non ripete il tentativo e ferma la coda: le altre storie darebbero lo stesso errore e restano nel pannello.
+
+La congiunzione tra Pagina e profilo cambia con la lingua di Meta («Pagina e profilo», «Pagina and profilo», «Pagina y profilo», «Pagina et profilo»): motore e "Verifica" accettano tutte queste varianti, quindi il nome scelto con Facebook in italiano funziona anche dopo aver cambiato lingua.
+
+Sull'app Android, durante "Trova il nome in Meta" la pagina desktop occupa tutta l'altezza dello schermo e il riquadro di StoryFlow sta in basso, sopra le barre di sistema. Se copre il testo appena toccato si sposta in alto da solo; il pulsante ⇅ lo sposta a mano.
 
 `meta-setup.js` viene copiato nell'app desktop a ogni build e nell'app Android da `node tools/sync-engine.mjs --android ../StoryFlow`.
 

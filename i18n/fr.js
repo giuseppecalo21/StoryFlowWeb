@@ -300,6 +300,8 @@
   'rep.noneStored': 'Aucune exécution enregistrée.',
   'rep.lastOk': 'Dernière exécution réussie : {ok} publiées, 0 erreur.',
   'rep.none': 'Aucune exécution précédente.',
+  'rep.title': 'Dernière publication',
+  'rep.nothingDone': 'La dernière file s’est terminée sans publier de story ni signaler d’erreur.',
   'rep.summary': 'Terminées : {ok}. Erreurs : {err}.',
   'rep.startFailed': 'Démarrage impossible',
 

@@ -314,6 +314,8 @@
   'rep.noneStored': 'Nessuna esecuzione memorizzata.',
   'rep.lastOk': 'Ultima esecuzione OK: {ok} pubblicate, 0 errori.',
   'rep.none': 'Nessuna esecuzione precedente.',
+  'rep.title': 'Ultima pubblicazione',
+  'rep.nothingDone': 'L’ultima coda si è chiusa senza pubblicare storie e senza segnalare errori.',
   'rep.summary': 'Completate: {ok}. Errori: {err}.',
   'rep.startFailed': 'Avvio non riuscito',
 

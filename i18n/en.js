@@ -300,6 +300,8 @@
   'rep.noneStored': 'No saved runs.',
   'rep.lastOk': 'Last run OK: {ok} published, 0 errors.',
   'rep.none': 'No previous runs.',
+  'rep.title': 'Last publishing run',
+  'rep.nothingDone': 'The last queue ended without publishing any stories or reporting errors.',
   'rep.summary': 'Completed: {ok}. Errors: {err}.',
   'rep.startFailed': 'Couldn’t start',
 

@@ -17,12 +17,19 @@
 </head>
 <body>
 <div id="pageName">My Page e my_page</div>
+<div id="shareTo" hidden>Scegli dove verrà pubblicata la storia</div>
 <div id="app"></div>
 <script>
 // Riproduce in modo semplificato il composer storie di Meta Business Suite per provare il motore
 // in più lingue. ?lang=it|en|es|fr|pt|de (de = lingua non supportata, per provare la diagnostica).
+// ?page=… cambia la scritta con il nome della pagina; ?static=1 aggiunge una scritta che somiglia a una conferma
+// ("dove verrà pubblicata la storia"); ?noshare=1 fa sì che Condividi non pubblichi nulla.
 (() => {
-  const lang = new URLSearchParams(location.search).get('lang') || 'it';
+  const params = new URLSearchParams(location.search);
+  const lang = params.get('lang') || 'it';
+  if (params.has('page')) document.getElementById('pageName').textContent = params.get('page');
+  document.getElementById('shareTo').hidden = !params.has('static');
+  const noShare = params.has('noshare');
   document.documentElement.lang = lang;
   const L = {
     it: { addMedia: 'Aggiungi foto/video', addLink: 'Aggiungi link', editLink: 'Modifica link', apply: 'Applica', edit: 'Modifica', editPhoto: 'Modifica foto', more: 'Altri adesivi', cancel: 'Annulla', share: 'Condividi', heading: 'Aggiungi adesivo con link', create: 'Create link sticker', remove: 'remove', shared: 'La tua storia è stata condivisa' },
@@ -67,7 +74,7 @@
       row.append(button(L.editLink, () => {}), button(L.edit, openEditor));
       app.append(row);
     }
-    app.append(button(L.share, () => { if (!state.working) { state.shared = true; render(); } }));
+    app.append(button(L.share, () => { if (!state.working && !noShare) { state.shared = true; render(); } }));
     if (state.working) app.append(renderEditor());
   }
 
